@@ -100,7 +100,11 @@ RENOVADO (reemplazado por una entrega nueva), ANULADO. Se recalcula a diario y a
   - `VigenciaService.alertas(idSede, estado)` y `renovacionesHasta(dias, idSede, idCategoria)` (RF-09, R-03).
   - `TrabajadorService.registrarCese(...)`, `registrarReingreso(...)`, `buscarPorDni(...)` (RN-04).
 
-## 6. Pendiente (continuar en este orden)
+## 6. Pendiente
+
+> **Actualización:** 6.1 a 6.4 ya están implementados (`EntregaController`, `AlertaController`, `HistorialController`,
+> `ReporteController`/`ReporteService`) con pruebas en `ModulosWebTest`. Se conservan abajo como especificación.
+> Lo que sigue pendiente es 6.5 (Asistente IA) y 6.6.
 
 Al terminar cada módulo: activar su enlace en `templates/fragments/layout.html` (hoy están como `nav-link disabled`),
 agregar pruebas en `src/test` y correr `./mvnw test`.

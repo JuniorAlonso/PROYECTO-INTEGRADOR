@@ -1,9 +1,11 @@
 package pe.utp.epptrack.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 @Entity
 @Table(name = "epp")
@@ -22,14 +24,17 @@ public class Epp {
     private CategoriaEpp categoria;
 
     @NotBlank
+    @Size(max = 150, message = "Máximo 150 caracteres")
     @Column(nullable = false, length = 150)
     private String nombre;
 
+    @Size(max = 255, message = "Máximo 255 caracteres")
     @Column(length = 255)
     private String descripcion;
 
     @NotNull
     @Min(value = 1, message = "La vida útil debe ser al menos 1 día")
+    @Max(value = 3650, message = "La vida útil no puede superar 3650 días (10 años)")
     @Column(nullable = false)
     private Integer vidaUtilDias;
 

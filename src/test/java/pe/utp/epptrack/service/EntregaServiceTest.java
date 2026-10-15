@@ -36,7 +36,7 @@ class EntregaServiceTest {
     @BeforeEach
     void preparar() {
         datos.cargar();
-        trabajador = datos.trabajador("10000001", LocalDate.now().minusDays(10));
+        trabajador = datos.trabajador("10000001", LocalDate.now().minusDays(60));
     }
 
     @Test
@@ -128,5 +128,82 @@ class EntregaServiceTest {
     void exigeAlMenosUnEpp() {
         EntregaForm vacio = datos.formulario(trabajador, LocalDate.now());
         assertThatThrownBy(() -> entregaService.registrar(vacio, "sup-test")).isInstanceOf(ReglaNegocioException.class);
+    }
+
+    @Test
+    void rechazaElMismoEppRepetidoEnUnaEntrega() {
+        EntregaForm form = datos.formulario(trabajador, LocalDate.now(), datos.respirador, datos.respirador);
+        assertThatThrownBy(() -> entregaService.registrar(form, "sup-test"))
+                .isInstanceOf(ReglaNegocioException.class).hasMessageContaining("repetirse");
+    }
+
+    @Test
+    void rechazaFechaDeEntregaFutura() {
+        EntregaForm form = datos.formulario(trabajador, LocalDate.now().plusDays(1), datos.respirador);
+        assertThatThrownBy(() -> entregaService.registrar(form, "sup-test"))
+                .isInstanceOf(ReglaNegocioException.class).hasMessageContaining("futura");
+    }
+
+    @Test
+    void cantidadInvalidaNoDejaNingunRegistroParcial() {
+        EntregaForm form = datos.formulario(trabajador, LocalDate.now(), datos.respirador);
+        form.getItems().getFirst().setCantidad(0);
+        assertThatThrownBy(() -> entregaService.registrar(form, "sup-test"))
+                .isInstanceOf(ReglaNegocioException.class);
+        assertThat(detalleRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void anularLaEntregaQueReemplazoRestauraLaAnterior() {
+        Trabajador antiguo = datos.trabajador("10000002", LocalDate.now().minusDays(200));
+        entregaService.registrar(datos.formulario(antiguo, LocalDate.now().minusDays(100), datos.respirador), "sup-test");
+        EntregaForm nueva = datos.formulario(antiguo, LocalDate.now(), datos.respirador);
+        nueva.getItems().getFirst().setJustificacion("Se perdió");
+        Entrega segunda = entregaService.registrar(nueva, "sup-test");
+        DetalleEntrega anterior = detalleRepository.findAll().stream()
+                .filter(d -> d.getEstadoVigencia() == EstadoVigencia.RENOVADO).findFirst().orElseThrow();
+
+        entregaService.anularDetalle(segunda.getDetalles().getFirst().getIdDetalle(), "Error de registro", "sup-test");
+
+        assertThat(anterior.getEstadoVigencia()).isEqualTo(EstadoVigencia.VIGENTE);
+        assertThat(entregaService.enUsoPorEpp(antiguo.getIdTrabajador())).containsKey(datos.respirador.getIdEpp());
+        assertThat(historialRepository.findAll()).extracting(HistorialEpp::getTipoMovimiento)
+                .contains(HistorialEpp.RESTAURADO);
+    }
+
+    @Test
+    void anularUnaEntregaSinAnteriorNoRestauraNada() {
+        Entrega e = entregaService.registrar(datos.formulario(trabajador, LocalDate.now(), datos.respirador), "sup-test");
+        entregaService.anularDetalle(e.getDetalles().getFirst().getIdDetalle(), "Error", "sup-test");
+        assertThat(entregaService.enUsoPorEpp(trabajador.getIdTrabajador())).isEmpty();
+    }
+
+    @Test
+    void rechazaJustificacionYMotivoDemasiadoLargos() {
+        String largo = "x".repeat(451);
+        EntregaForm form = datos.formulario(trabajador, LocalDate.now(), datos.respirador);
+        form.getItems().getFirst().setJustificacion(largo);
+        assertThatThrownBy(() -> entregaService.registrar(form, "sup-test"))
+                .isInstanceOf(ReglaNegocioException.class).hasMessageContaining("450");
+        Entrega e = entregaService.registrar(datos.formulario(trabajador, LocalDate.now(), datos.respirador), "sup-test");
+        Integer id = e.getDetalles().getFirst().getIdDetalle();
+        assertThatThrownBy(() -> entregaService.anularDetalle(id, largo, "sup-test"))
+                .isInstanceOf(ReglaNegocioException.class).hasMessageContaining("450");
+    }
+
+    @Test
+    void rechazaEntregaAnteriorAlIngresoDelTrabajador() {
+        EntregaForm form = datos.formulario(trabajador, LocalDate.now().minusDays(61), datos.respirador);   // ingresó hace 60 días
+        assertThatThrownBy(() -> entregaService.registrar(form, "sup-test"))
+                .isInstanceOf(ReglaNegocioException.class).hasMessageContaining("anterior al ingreso");
+        assertThat(detalleRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void rechazaUnEppDesactivado() {
+        datos.casco.setEstado(Epp.INACTIVO);
+        EntregaForm form = datos.formulario(trabajador, LocalDate.now(), datos.casco);
+        assertThatThrownBy(() -> entregaService.registrar(form, "sup-test"))
+                .isInstanceOf(ReglaNegocioException.class).hasMessageContaining("desactivado");
     }
 }

@@ -36,7 +36,8 @@ class SeguridadTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void adminVeTodasLasPantallas() throws Exception {
-        for (String ruta : new String[]{"/", "/trabajadores", "/trabajadores/nuevo", "/epp", "/epp/nuevo", "/matriz"}) {
+        for (String ruta : new String[]{"/", "/trabajadores", "/trabajadores/nuevo", "/epp", "/epp/nuevo", "/matriz",
+                "/entregas/nueva", "/alertas", "/historial", "/reportes"}) {
             mvc.perform(get(ruta)).andExpect(status().isOk());
         }
     }
@@ -57,5 +58,16 @@ class SeguridadTest {
         mvc.perform(get("/trabajadores/nuevo")).andExpect(status().isOk());
         mvc.perform(get("/entregas/nueva")).andExpect(status().isForbidden());
         mvc.perform(get("/epp/nuevo")).andExpect(status().isForbidden());
+        mvc.perform(get("/alertas")).andExpect(status().isForbidden());
+        mvc.perform(get("/reportes")).andExpect(status().isForbidden());
+        mvc.perform(get("/historial")).andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "SUPERVISOR")
+    void supervisorUsaEntregasAlertasHistorialYReportes() throws Exception {
+        for (String ruta : new String[]{"/entregas/nueva", "/alertas", "/historial", "/reportes"}) {
+            mvc.perform(get(ruta)).andExpect(status().isOk());
+        }
     }
 }

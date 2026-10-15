@@ -13,6 +13,7 @@ public class HistorialEpp {
     public static final String ENTREGA_DUPLICADA = "ENTREGA_DUPLICADA_JUSTIFICADA";
     public static final String RENOVADO = "RENOVADO";
     public static final String ANULACION = "ANULACION";
+    public static final String RESTAURADO = "RESTAURADO";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

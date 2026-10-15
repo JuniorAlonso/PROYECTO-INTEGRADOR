@@ -54,12 +54,13 @@ public class SecurityConfig {
     }
 
     @Bean
-    public UserDetailsService userDetailsService(UsuarioRepository usuarioRepository) {
+    public UserDetailsService userDetailsService(UsuarioRepository usuarioRepository, LoginAttemptService intentos) {
         return username -> usuarioRepository.findByNombreUsuario(username)
                 .map(u -> User.withUsername(u.getNombreUsuario())
                         .password(u.getContrasenaCifrada())
                         .roles(u.getRol().getNombre())
                         .disabled(!"ACTIVO".equals(u.getEstado()))
+                        .accountLocked(intentos.estaBloqueado(username))
                         .build())
                 .orElseThrow(() -> new UsernameNotFoundException(username));
     }

@@ -11,7 +11,7 @@
         <div class="row g-3">
             <div class="col-md-3">
                 <label class="form-label">DNI</label>
-                <input class="form-control" th:field="*{dni}" maxlength="8" th:errorclass="is-invalid">
+                <input class="form-control" th:field="*{dni}" maxlength="8" pattern="\d{8}" inputmode="numeric" title="8 dígitos" required th:errorclass="is-invalid">
                 <div class="invalid-feedback" th:errors="*{dni}"></div>
             </div>
             <div class="col-md-5">
@@ -26,7 +26,7 @@
             </div>
             <div class="col-md-3">
                 <label class="form-label">Fecha de nacimiento</label>
-                <input class="form-control" type="date" th:field="*{fechaNacimiento}">
+                <input class="form-control" type="date" th:field="*{fechaNacimiento}" th:max="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
             </div>
             <div class="col-md-3">
                 <label class="form-label">Puesto</label>
@@ -48,8 +48,8 @@
             </div>
             <div class="col-md-3">
                 <label class="form-label">Actividad (Matriz de EPP)</label>
-                <select class="form-select" name="idActividad">
-                    <option value="">Sin asignar</option>
+                <select class="form-select" name="idActividad" th:required="${nuevo}">
+                    <option value="">Seleccione…</option>
                     <option th:each="a : ${actividades}" th:value="${a.idActividad}"
                             th:text="${a.proceso.nombre + ' — ' + a.nombre}"
                             th:selected="${a.idActividad == idActividad}"></option>

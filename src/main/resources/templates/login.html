@@ -14,7 +14,7 @@
         <h1 class="h4 mb-1"><i class="bi bi-shield-check text-primary"></i> EPPTrack</h1>
         <p class="text-muted small mb-4">Trazabilidad y seguimiento de EPP · Campos del Sur S.A.</p>
 
-        <div th:if="${param.error}" class="alert alert-danger py-2">Usuario o contraseña incorrectos.</div>
+        <div th:if="${param.error}" class="alert alert-danger py-2">Usuario o contraseña incorrectos. Tras 5 intentos fallidos la cuenta se bloquea 15 minutos.</div>
         <div th:if="${param.salir}" class="alert alert-info py-2">Sesión cerrada.</div>
 
         <form th:action="@{/login}" method="post">

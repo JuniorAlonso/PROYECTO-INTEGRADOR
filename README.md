@@ -21,7 +21,7 @@ Requisitos: JDK 21 o superior y MySQL corriendo en `localhost:3306` (la base `ep
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=h2
 ```
 
-En Windows usa `mvnw.cmd` en lugar de `./mvnw`. Para la clave de MySQL en PowerShell: `$env:DB_PASSWORD="tu_clave"`.
+Si en Mac/Linux sale "permission denied": `chmod +x mvnw`. En Windows usa `mvnw.cmd` en lugar de `./mvnw`. Para la clave de MySQL en PowerShell: `$env:DB_PASSWORD="tu_clave"`.
 
 Abrir http://localhost:8080. La primera vez se cargan datos simulados (`config/DataInitializer.java`).
 
@@ -64,18 +64,23 @@ templates/        Vistas Thymeleaf (layout común en fragments/layout.html)
   - `TrabajadorService.registrarCese(...)` y `registrarReingreso(...)` (RN-04); los endpoints POST ya existen en `TrabajadorController`
 - [x] Pruebas automáticas de servicios y seguridad (ver abajo)
 
-### Pendiente (para el compañero)
-- [ ] **Registro de entregas** (CU-05): `EntregaController` + `templates/entregas/nueva.html`.
-  Buscar trabajador por DNI → mostrar EPP de la matriz con `DotacionService.estadoDotacion(t)` →
-  enviar `EntregaForm` a `EntregaService.registrar`. Si `duplicadosSinJustificar(form)` no está vacío,
-  volver a mostrar el formulario pidiendo la justificación de esos EPP (modal del prototipo, Fig. 20.5).
-- [ ] **Vigencia y alertas** (CU-07): `/alertas` usando `VigenciaService.alertas(idSede, estado)`, con pestañas vencidos / por vencer.
-- [ ] **Historial por trabajador** (CU-06): `/historial?dni=` con periodos laborales (`PeriodoLaboralRepository`),
-  entregas (`EntregaRepository`) y movimientos (`HistorialEppRepository`). Agregar ahí los botones de cese y reingreso.
-- [ ] **Reportes** R-01 a R-04 con exportación (RF-11, RF-12, Anexo 22).
-- [ ] Activar los enlaces del menú en `templates/fragments/layout.html` cuando cada módulo exista.
-- [ ] Asistente IA (RF-16 a RF-20).
-- [ ] Pruebas de los controladores nuevos (seguir el estilo de `src/test`).
+- [x] **Registro de entregas** (CU-05, RF-04 a RF-07): buscar por DNI, EPP de la matriz preseleccionados, advertencia y justificación de duplicados — `EntregaController`, `templates/entregas/`
+- [x] **Vigencia y alertas** (CU-07, RF-09): pestañas vencidos / por vencer / vigentes, filtro por sede y botón Renovar — `AlertaController`
+- [x] **Historial por trabajador** (CU-06, RF-08, RN-04): campañas, entregas, bitácora, correcciones; botones de nueva entrega, cese, reingreso y anulación — `HistorialController`
+- [x] **Reportes R-01 a R-04** (RF-11, RF-12): en pantalla, imprimir/PDF desde el navegador y exportación a Excel (CSV) — `ReporteController`, `ReporteService`
+- [x] Menú lateral activo según el rol del usuario
+
+### Pendiente
+- [ ] Asistente IA (RF-16 a RF-20): ver `CLAUDE.md` sección 6.5.
+- [ ] Documentar el procedimiento de respaldo de la base (RNF-08).
+- [ ] Antes de un despliegue real: quitar los usuarios de demo y poner `app.datos-demo=false`.
+
+## Seguridad y configuración
+
+- Contraseñas con BCrypt; cuenta bloqueada 15 min tras 5 intentos fallidos; sesión de 30 min sin actividad.
+- Variables de entorno: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DATOS_DEMO` (`false` en un despliegue real
+  para no crear los usuarios de demostración) y `THYMELEAF_CACHE` (`true` en producción).
+- Las fechas de vigencia usan la hora de Lima aunque el servidor esté en otra zona.
 
 ## Pruebas
 
@@ -83,7 +88,9 @@ templates/        Vistas Thymeleaf (layout común en fragments/layout.html)
 ./mvnw test
 ```
 
-19 pruebas con base H2 en memoria (no necesitan MySQL):
+51 pruebas con base H2 en memoria (no necesitan MySQL):
 - `EntregaServiceTest`: fecha de renovación, estados de vigencia, bloqueo de duplicados, anulación auditada.
 - `DotacionYTrabajadorServiceTest`: asignación por matriz, dotación completa/incompleta, DNI repetido, reingreso con historial.
 - `SeguridadTest`: login obligatorio y permisos por rol.
+- `LoginBloqueoTest`: bloqueo de la cuenta tras 5 intentos fallidos.
+- `ModulosWebTest`: entregas (con duplicados), historial, anulación, cese, alertas y reportes (pantalla y CSV).

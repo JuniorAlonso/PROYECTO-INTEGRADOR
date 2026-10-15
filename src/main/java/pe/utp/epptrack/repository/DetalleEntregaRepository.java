@@ -1,5 +1,6 @@
 package pe.utp.epptrack.repository;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -20,8 +21,10 @@ public interface DetalleEntregaRepository extends JpaRepository<DetalleEntrega, 
                                                                                            Integer idEpp,
                                                                                            Collection<EstadoVigencia> estados);
 
+    @EntityGraph(attributePaths = {"entrega.trabajador.sede", "epp.categoria"})
     List<DetalleEntrega> findByEstadoVigenciaInOrderByFechaRenovacionAsc(Collection<EstadoVigencia> estados);
 
+    @EntityGraph(attributePaths = {"entrega.sede", "epp"})
     List<DetalleEntrega> findByEntregaFechaEntregaBetween(LocalDate desde, LocalDate hasta);
 
     long countByEstadoVigencia(EstadoVigencia estado);

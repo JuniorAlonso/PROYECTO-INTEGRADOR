@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Error · EPPTrack</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" th:href="@{/css/epptrack.css}">
+</head>
+<body class="login-fondo d-flex align-items-center justify-content-center">
+<div class="card shadow" style="width: 460px"><div class="card-body p-4 text-center">
+    <div class="display-5 fw-bold" th:text="${status} ?: 'Error'">Error</div>
+    <p class="mt-2" th:text="${mensaje} ?: (${status} == 404 ? 'La página o el registro no existe.' : (${status} == 403 ? 'No tiene permiso para esta acción.' : 'Ocurrió un error inesperado. Intente de nuevo.'))"></p>
+    <a class="btn btn-primary" th:href="@{/}">Volver al inicio</a>
+</div></div>
+</body>
+</html>

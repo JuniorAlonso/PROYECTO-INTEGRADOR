@@ -29,3 +29,11 @@ body { background: #f4f6fa; }
 .kpi .valor { font-size: 2rem; font-weight: 700; }
 
 .login-fondo { background: var(--ept-azul); min-height: 100vh; }
+
+/* Impresión de reportes: solo el contenido, sin menú ni botones */
+@media print {
+    .sidebar, header, .no-imprimir, .alert { display: none !important; }
+    body { background: #fff; }
+    main { padding: 0 !important; }
+    .card { border: 0; }
+}

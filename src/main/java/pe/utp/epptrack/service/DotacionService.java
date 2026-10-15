@@ -100,6 +100,9 @@ public class DotacionService {
         Map<Integer, Boolean> obligatorio = new HashMap<>();
         Map<Integer, Integer> cantidad = new HashMap<>();
         for (MatrizAsignacion regla : reglas) {
+            if (!regla.getEpp().isActivo()) {
+                continue;   // un EPP dado de baja del catálogo ya no se exige
+            }
             Integer idEpp = regla.getEpp().getIdEpp();
             porEpp.putIfAbsent(idEpp, regla);
             obligatorio.merge(idEpp, regla.isObligatorio(), Boolean::logicalOr);

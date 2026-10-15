@@ -23,11 +23,14 @@
                 <i class="bi bi-cone-striped"></i> Catálogo de EPP</a></li>
             <li><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/matriz')} ? active" th:href="@{/matriz}">
                 <i class="bi bi-grid-3x3"></i> Matriz de asignación</a></li>
-            <!-- Módulos pendientes (ver README) -->
-            <li><span class="nav-link disabled"><i class="bi bi-box-seam"></i> Registro de entregas</span></li>
-            <li><span class="nav-link disabled"><i class="bi bi-bell"></i> Vigencia y alertas</span></li>
-            <li><span class="nav-link disabled"><i class="bi bi-clock-history"></i> Historial</span></li>
-            <li><span class="nav-link disabled"><i class="bi bi-file-earmark-text"></i> Reportes</span></li>
+            <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/entregas')} ? active" th:href="@{/entregas/nueva}">
+                <i class="bi bi-box-seam"></i> Registro de entregas</a></li>
+            <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/alertas')} ? active" th:href="@{/alertas}">
+                <i class="bi bi-bell"></i> Vigencia y alertas</a></li>
+            <li><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/historial')} ? active" th:href="@{/historial}">
+                <i class="bi bi-clock-history"></i> Historial</a></li>
+            <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/reportes')} ? active" th:href="@{/reportes}">
+                <i class="bi bi-file-earmark-text"></i> Reportes</a></li>
         </ul>
     </nav>
 
@@ -36,7 +39,7 @@
             <span class="text-muted small">
                 <i class="bi bi-person-circle"></i>
                 <span sec:authentication="name">usuario</span>
-                (<span sec:authentication="principal.authorities">rol</span>)
+                (<span sec:authorize="hasRole('ADMIN')">Administrador</span><span sec:authorize="hasRole('SUPERVISOR')">Supervisor</span><span sec:authorize="hasRole('RRHH')">Recursos Humanos</span>)
             </span>
             <form th:action="@{/logout}" method="post">
                 <button class="btn btn-sm btn-outline-secondary">Salir</button>
