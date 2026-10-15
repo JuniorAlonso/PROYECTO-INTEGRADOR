@@ -74,7 +74,7 @@ public class EntregaService {
     @Transactional(readOnly = true)
     public DetalleEntrega obtenerDetalle(Integer idDetalle) {
         return detalleRepository.findById(idDetalle)
-                .orElseThrow(() -> new ReglaNegocioException("Registro de entrega no encontrado."));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Registro de entrega no encontrado."));
     }
 
     @Transactional
@@ -92,14 +92,17 @@ public class EntregaService {
         if (seleccionados.stream().map(ItemEntregaForm::getIdEpp).distinct().count() != seleccionados.size()) {
             throw new ReglaNegocioException("Un mismo EPP no puede repetirse en la misma entrega.");
         }
-        if (seleccionados.stream().anyMatch(i -> i.getCantidad() == null || i.getCantidad() < 1)) {
-            throw new ReglaNegocioException("La cantidad de cada EPP debe ser al menos 1.");
+        if (seleccionados.stream().anyMatch(i -> i.getCantidad() == null || i.getCantidad() < 1 || i.getCantidad() > 99)) {
+            throw new ReglaNegocioException("La cantidad de cada EPP debe estar entre 1 y 99.");
+        }
+        if (seleccionados.stream().anyMatch(i -> i.getJustificacion() != null && i.getJustificacion().trim().length() > 450)) {
+            throw new ReglaNegocioException("La justificación admite hasta 450 caracteres.");
         }
         if (!duplicadosSinJustificar(form).isEmpty()) {
             throw new ReglaNegocioException("Hay EPP vigentes sin justificación de entrega duplicada.");
         }
         Trabajador trabajador = trabajadorRepository.findById(form.getIdTrabajador())
-                .orElseThrow(() -> new ReglaNegocioException("Trabajador no encontrado."));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Trabajador no encontrado."));
         if (!trabajador.getEstado().isLaborando()) {
             throw new ReglaNegocioException("El trabajador está cesado; registre su reingreso antes de entregarle EPP.");
         }
@@ -116,7 +119,7 @@ public class EntregaService {
 
         for (ItemEntregaForm item : seleccionados) {
             Epp epp = eppRepository.findById(item.getIdEpp())
-                    .orElseThrow(() -> new ReglaNegocioException("EPP no encontrado."));
+                    .orElseThrow(() -> new RecursoNoEncontradoException("EPP no encontrado."));
             DetalleEntrega detalle = new DetalleEntrega(epp, item.getCantidad(),
                     form.getFechaEntrega().plusDays(epp.getVidaUtilDias()));
             detalle.setEstadoVigencia(vigenciaService.calcular(detalle.getFechaRenovacion()));
@@ -148,8 +151,10 @@ public class EntregaService {
         if (motivo == null || motivo.isBlank()) {
             throw new ReglaNegocioException("Indique el motivo de la anulación.");
         }
-        DetalleEntrega detalle = detalleRepository.findById(idDetalle)
-                .orElseThrow(() -> new ReglaNegocioException("Registro de entrega no encontrado."));
+        if (motivo.trim().length() > 450) {
+            throw new ReglaNegocioException("El motivo admite hasta 450 caracteres.");
+        }
+        DetalleEntrega detalle = obtenerDetalle(idDetalle);
         if (detalle.getEstadoVigencia() == EstadoVigencia.ANULADO) {
             throw new ReglaNegocioException("El registro ya se encuentra anulado.");
         }
@@ -157,9 +162,37 @@ public class EntregaService {
                 .orElseThrow(() -> new ReglaNegocioException("Usuario no encontrado."));
         String valorAnterior = "estado=%s; cantidad=%d; fecha_renovacion=%s".formatted(
                 detalle.getEstadoVigencia(), detalle.getCantidad(), detalle.getFechaRenovacion());
+        boolean estabaVigente = REEMPLAZABLES.contains(detalle.getEstadoVigencia());
         correccionRepository.save(new CorreccionEntrega(detalle, usuario, valorAnterior, motivo.trim()));
         detalle.setEstadoVigencia(EstadoVigencia.ANULADO);
-        historialRepository.save(new HistorialEpp(detalle.getEntrega().getTrabajador(), detalle,
-                HistorialEpp.ANULACION, motivo.trim()));
+        Trabajador trabajador = detalle.getEntrega().getTrabajador();
+        historialRepository.save(new HistorialEpp(trabajador, detalle, HistorialEpp.ANULACION, motivo.trim()));
+        if (estabaVigente) {
+            restaurarReemplazado(trabajador, detalle);
+        }
+    }
+
+    /**
+     * Si la entrega anulada había reemplazado a otra, esa vuelve a estar en uso: de lo contrario el trabajador
+     * quedaría sin cobertura por un error de registro. Solo se restaura la más reciente y si no hay otra vigente.
+     */
+    private void restaurarReemplazado(Trabajador trabajador, DetalleEntrega anulado) {
+        Integer idTrabajador = trabajador.getIdTrabajador();
+        Integer idEpp = anulado.getEpp().getIdEpp();
+        boolean hayOtraEnUso = !detalleRepository
+                .findByEntregaTrabajadorIdTrabajadorAndEppIdEppAndEstadoVigenciaIn(idTrabajador, idEpp, REEMPLAZABLES)
+                .isEmpty();
+        if (hayOtraEnUso) {
+            return;
+        }
+        detalleRepository.findByEntregaTrabajadorIdTrabajadorAndEppIdEppAndEstadoVigenciaIn(
+                        idTrabajador, idEpp, EnumSet.of(EstadoVigencia.RENOVADO)).stream()
+                .max(java.util.Comparator.comparing((DetalleEntrega d) -> d.getEntrega().getFechaEntrega())
+                        .thenComparing(DetalleEntrega::getIdDetalle))
+                .ifPresent(previo -> {
+                    previo.setEstadoVigencia(vigenciaService.calcular(previo.getFechaRenovacion()));
+                    historialRepository.save(new HistorialEpp(trabajador, previo, HistorialEpp.RESTAURADO,
+                            "Restaurado por anulación de la entrega posterior"));
+                });
     }
 }

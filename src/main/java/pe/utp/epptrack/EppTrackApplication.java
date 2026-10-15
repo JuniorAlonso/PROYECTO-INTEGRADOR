@@ -9,6 +9,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class EppTrackApplication {
 
     public static void main(String[] args) {
+        // Las fechas de vigencia se calculan con la hora de Lima aunque el servidor esté en UTC.
+        java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("America/Lima"));
         SpringApplication.run(EppTrackApplication.class, args);
     }
 }

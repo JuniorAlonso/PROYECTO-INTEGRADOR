@@ -5,6 +5,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import pe.utp.epptrack.dto.EstadoDotacion;
@@ -42,6 +43,12 @@ public class TrabajadorController {
         this.sedeRepository = sedeRepository;
         this.puestoRepository = puestoRepository;
         this.actividadRepository = actividadRepository;
+    }
+
+    /** El id y el estado nunca vienen del formulario: los decide el servicio (evita sobrescribir a otro trabajador). */
+    @InitBinder("trabajador")
+    void protegerCampos(WebDataBinder binder) {
+        binder.setDisallowedFields("idTrabajador", "estado");
     }
 
     @GetMapping

@@ -109,4 +109,33 @@ class DotacionYTrabajadorServiceTest {
         assertThat(dotacionService.estadoDotacion(trabajador).getFaltantes())
                 .extracting(i -> i.epp().getNombre()).containsExactly("Guantes de nitrilo");
     }
+
+    @Test
+    void ceseNoPuedeSerAnteriorAlIngresoNiFuturo() {
+        Integer id = trabajador.getIdTrabajador();
+        assertThatThrownBy(() -> trabajadorService.registrarCese(id, LocalDate.now().minusDays(31)))
+                .isInstanceOf(ReglaNegocioException.class).hasMessageContaining("anterior al ingreso");
+        assertThatThrownBy(() -> trabajadorService.registrarCese(id, LocalDate.now().plusDays(1)))
+                .isInstanceOf(ReglaNegocioException.class).hasMessageContaining("futura");
+        assertThat(trabajador.getEstado()).isEqualTo(EstadoTrabajador.ACTIVO);
+    }
+
+    @Test
+    void reingresoNoPuedeSerAnteriorAlUltimoCese() {
+        Integer id = trabajador.getIdTrabajador();
+        trabajadorService.registrarCese(id, LocalDate.now().minusDays(5));
+        assertThatThrownBy(() -> trabajadorService.registrarReingreso(id, "Otra", LocalDate.now().minusDays(6), null, null))
+                .isInstanceOf(ReglaNegocioException.class).hasMessageContaining("último cese");
+        assertThat(trabajador.getEstado()).isEqualTo(EstadoTrabajador.CESADO);
+    }
+
+    @Test
+    void unEppDesactivadoYaNoSeExigeEnLaDotacion() {
+        entregaService.registrar(datos.formulario(trabajador, LocalDate.now(), datos.respirador), "sup-test");
+        assertThat(dotacionService.estadoDotacion(trabajador).isCompleta()).isFalse();   // faltan guantes
+
+        datos.guantes.setEstado(pe.utp.epptrack.model.Epp.INACTIVO);
+
+        assertThat(dotacionService.estadoDotacion(trabajador).isCompleta()).isTrue();
+    }
 }

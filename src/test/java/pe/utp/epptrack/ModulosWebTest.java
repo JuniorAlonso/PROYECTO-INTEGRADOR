@@ -30,6 +30,8 @@ class ModulosWebTest {
     @Autowired MockMvc mvc;
     @Autowired DatosPrueba datos;
     @Autowired DetalleEntregaRepository detalleRepository;
+    @Autowired pe.utp.epptrack.repository.TrabajadorRepository trabajadorRepository;
+    @Autowired pe.utp.epptrack.service.TrabajadorService trabajadorService;
 
     Trabajador trabajador;
 
@@ -163,5 +165,52 @@ class ModulosWebTest {
         p.add("items[0].cantidad", "1");
         if (justificar) p.add("items[0].justificacion", "Se rompió el empaque");
         return p;
+    }
+
+    @Test
+    @WithMockUser(roles = "RRHH")
+    void elFormularioNoPuedeSobrescribirOtroTrabajadorNiForzarElEstado() throws Exception {
+        trabajadorCesado();
+        mvc.perform(post("/trabajadores").with(csrf())
+                        .param("idTrabajador", String.valueOf(trabajador.getIdTrabajador()))
+                        .param("estado", "ACTIVO")
+                        .param("dni", "20000099").param("apellidos", "Nuevo").param("nombres", "Intruso")
+                        .param("puesto", String.valueOf(datos.puesto.getIdPuesto()))
+                        .param("sede", String.valueOf(datos.sede.getIdSede()))
+                        .param("campana", "C1").param("fechaIngreso", LocalDate.now().toString()))
+                .andExpect(status().is3xxRedirection());
+        // El trabajador original no cambió y se creó otro registro distinto
+        var original = trabajadorRepository.findById(trabajador.getIdTrabajador()).orElseThrow();
+        assertThat(original.getDni()).isEqualTo("20000001");
+        assertThat(original.getEstado().name()).isEqualTo("CESADO");
+        assertThat(trabajadorRepository.findByDni("20000099")).isPresent();
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void recursosInexistentesResponden404ConPaginaClara() throws Exception {
+        mvc.perform(get("/epp/999999/editar")).andExpect(status().isNotFound()).andExpect(view().name("error"));
+        mvc.perform(get("/trabajadores/999999/editar")).andExpect(status().isNotFound());
+        mvc.perform(post("/matriz/999999/quitar").with(csrf())).andExpect(status().isNotFound());
+        mvc.perform(post("/epp/999999/estado").with(csrf())).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "sup-test", roles = "SUPERVISOR")
+    void entregaSinTrabajadorNoRompe() throws Exception {
+        mvc.perform(post("/entregas").with(csrf()).param("motivo", "INGRESO"))
+                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/entregas/nueva"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void vidaUtilExcesivaSeRechazaEnElCatalogo() throws Exception {
+        mvc.perform(post("/epp").with(csrf()).param("nombre", "Casco largo").param("vidaUtilDias", "999999999")
+                        .param("categoria", String.valueOf(datos.casco.getCategoria().getIdCategoria())))
+                .andExpect(status().isOk()).andExpect(model().attributeHasFieldErrors("epp", "vidaUtilDias"));
+    }
+
+    private void trabajadorCesado() {
+        trabajadorService.registrarCese(trabajador.getIdTrabajador(), LocalDate.now().minusDays(1));
     }
 }

@@ -9,6 +9,7 @@ import pe.utp.epptrack.model.Actividad;
 import pe.utp.epptrack.model.Epp;
 import pe.utp.epptrack.model.MatrizAsignacion;
 import pe.utp.epptrack.model.Proceso;
+import pe.utp.epptrack.service.RecursoNoEncontradoException;
 import pe.utp.epptrack.repository.ActividadRepository;
 import pe.utp.epptrack.repository.EppRepository;
 import pe.utp.epptrack.repository.MatrizAsignacionRepository;
@@ -62,12 +63,16 @@ public class MatrizController {
                                @RequestParam(defaultValue = "1") Integer cantidad,
                                @RequestParam(defaultValue = "false") boolean obligatorio,
                                RedirectAttributes flash) {
+        Actividad actividad = actividadRepository.findById(idActividad)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Actividad no encontrada."));
+        Epp epp = eppRepository.findById(idEpp)
+                .orElseThrow(() -> new RecursoNoEncontradoException("EPP no encontrado."));
         if (matrizRepository.existsByActividadIdActividadAndEppIdEpp(idActividad, idEpp)) {
             flash.addFlashAttribute("error", "Ese EPP ya está en la matriz para esta actividad.");
+        } else if (!epp.isActivo()) {
+            flash.addFlashAttribute("error", "El EPP está desactivado en el catálogo; actívelo antes de asignarlo.");
         } else {
-            Actividad actividad = actividadRepository.findById(idActividad).orElseThrow();
-            Epp epp = eppRepository.findById(idEpp).orElseThrow();
-            matrizRepository.save(new MatrizAsignacion(actividad, epp, obligatorio, Math.max(1, cantidad)));
+            matrizRepository.save(new MatrizAsignacion(actividad, epp, obligatorio, Math.min(99, Math.max(1, cantidad))));
             flash.addFlashAttribute("exito", epp.getNombre() + " agregado a " + actividad.getNombre() + ".");
         }
         return "redirect:/matriz?actividad=" + idActividad;
@@ -75,7 +80,8 @@ public class MatrizController {
 
     @PostMapping("/{id}/quitar")
     public String quitarRegla(@PathVariable Integer id, RedirectAttributes flash) {
-        MatrizAsignacion regla = matrizRepository.findById(id).orElseThrow();
+        MatrizAsignacion regla = matrizRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("La regla de la matriz no existe."));
         Integer idActividad = regla.getActividad().getIdActividad();
         matrizRepository.delete(regla);
         flash.addFlashAttribute("exito", regla.getEpp().getNombre() + " retirado de la matriz.");
@@ -87,6 +93,10 @@ public class MatrizController {
     public String agregarActividad(@RequestParam String proceso, @RequestParam String nombre, RedirectAttributes flash) {
         if (proceso.isBlank() || nombre.isBlank()) {
             flash.addFlashAttribute("error", "Indique el proceso y el nombre de la actividad.");
+            return "redirect:/matriz";
+        }
+        if (proceso.trim().length() > 100 || nombre.trim().length() > 150) {
+            flash.addFlashAttribute("error", "El proceso admite hasta 100 caracteres y la actividad hasta 150.");
             return "redirect:/matriz";
         }
         Proceso p = procesoRepository.findByNombre(proceso.trim())

@@ -75,14 +75,22 @@ templates/        Vistas Thymeleaf (layout común en fragments/layout.html)
 - [ ] Documentar el procedimiento de respaldo de la base (RNF-08).
 - [ ] Antes de un despliegue real: quitar los usuarios de demo y poner `app.datos-demo=false`.
 
+## Seguridad y configuración
+
+- Contraseñas con BCrypt; cuenta bloqueada 15 min tras 5 intentos fallidos; sesión de 30 min sin actividad.
+- Variables de entorno: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DATOS_DEMO` (`false` en un despliegue real
+  para no crear los usuarios de demostración) y `THYMELEAF_CACHE` (`true` en producción).
+- Las fechas de vigencia usan la hora de Lima aunque el servidor esté en otra zona.
+
 ## Pruebas
 
 ```bash
 ./mvnw test
 ```
 
-35 pruebas con base H2 en memoria (no necesitan MySQL):
+47 pruebas con base H2 en memoria (no necesitan MySQL):
 - `EntregaServiceTest`: fecha de renovación, estados de vigencia, bloqueo de duplicados, anulación auditada.
 - `DotacionYTrabajadorServiceTest`: asignación por matriz, dotación completa/incompleta, DNI repetido, reingreso con historial.
 - `SeguridadTest`: login obligatorio y permisos por rol.
+- `LoginBloqueoTest`: bloqueo de la cuenta tras 5 intentos fallidos.
 - `ModulosWebTest`: entregas (con duplicados), historial, anulación, cese, alertas y reportes (pantalla y CSV).

@@ -152,4 +152,41 @@ class EntregaServiceTest {
                 .isInstanceOf(ReglaNegocioException.class);
         assertThat(detalleRepository.findAll()).isEmpty();
     }
+
+    @Test
+    void anularLaEntregaQueReemplazoRestauraLaAnterior() {
+        entregaService.registrar(datos.formulario(trabajador, LocalDate.now().minusDays(100), datos.respirador), "sup-test");
+        EntregaForm nueva = datos.formulario(trabajador, LocalDate.now(), datos.respirador);
+        nueva.getItems().getFirst().setJustificacion("Se perdió");
+        Entrega segunda = entregaService.registrar(nueva, "sup-test");
+        DetalleEntrega anterior = detalleRepository.findAll().stream()
+                .filter(d -> d.getEstadoVigencia() == EstadoVigencia.RENOVADO).findFirst().orElseThrow();
+
+        entregaService.anularDetalle(segunda.getDetalles().getFirst().getIdDetalle(), "Error de registro", "sup-test");
+
+        assertThat(anterior.getEstadoVigencia()).isEqualTo(EstadoVigencia.VIGENTE);
+        assertThat(entregaService.enUsoPorEpp(trabajador.getIdTrabajador())).containsKey(datos.respirador.getIdEpp());
+        assertThat(historialRepository.findAll()).extracting(HistorialEpp::getTipoMovimiento)
+                .contains(HistorialEpp.RESTAURADO);
+    }
+
+    @Test
+    void anularUnaEntregaSinAnteriorNoRestauraNada() {
+        Entrega e = entregaService.registrar(datos.formulario(trabajador, LocalDate.now(), datos.respirador), "sup-test");
+        entregaService.anularDetalle(e.getDetalles().getFirst().getIdDetalle(), "Error", "sup-test");
+        assertThat(entregaService.enUsoPorEpp(trabajador.getIdTrabajador())).isEmpty();
+    }
+
+    @Test
+    void rechazaJustificacionYMotivoDemasiadoLargos() {
+        String largo = "x".repeat(451);
+        EntregaForm form = datos.formulario(trabajador, LocalDate.now(), datos.respirador);
+        form.getItems().getFirst().setJustificacion(largo);
+        assertThatThrownBy(() -> entregaService.registrar(form, "sup-test"))
+                .isInstanceOf(ReglaNegocioException.class).hasMessageContaining("450");
+        Entrega e = entregaService.registrar(datos.formulario(trabajador, LocalDate.now(), datos.respirador), "sup-test");
+        Integer id = e.getDetalles().getFirst().getIdDetalle();
+        assertThatThrownBy(() -> entregaService.anularDetalle(id, largo, "sup-test"))
+                .isInstanceOf(ReglaNegocioException.class).hasMessageContaining("450");
+    }
 }

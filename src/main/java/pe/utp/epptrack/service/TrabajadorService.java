@@ -40,7 +40,7 @@ public class TrabajadorService {
     @Transactional(readOnly = true)
     public Trabajador obtener(Integer id) {
         return trabajadorRepository.findById(id)
-                .orElseThrow(() -> new ReglaNegocioException("Trabajador no encontrado."));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Trabajador no encontrado."));
     }
 
     @Transactional(readOnly = true)
@@ -64,6 +64,10 @@ public class TrabajadorService {
         }
         if (campana == null || campana.isBlank() || fechaIngreso == null) {
             throw new ReglaNegocioException("Indique la campaña y la fecha de ingreso.");
+        }
+        validarCampana(campana);
+        if (fechaIngreso.isAfter(LocalDate.now())) {
+            throw new ReglaNegocioException("La fecha de ingreso no puede ser futura.");
         }
         trabajador.setEstado(EstadoTrabajador.ACTIVO);
         Trabajador guardado = trabajadorRepository.save(trabajador);
@@ -101,6 +105,14 @@ public class TrabajadorService {
             throw new ReglaNegocioException("El trabajador ya se encuentra cesado.");
         }
         LocalDate fecha = fechaCese != null ? fechaCese : LocalDate.now();
+        if (fecha.isAfter(LocalDate.now())) {
+            throw new ReglaNegocioException("La fecha de cese no puede ser futura.");
+        }
+        periodoRepository.findByTrabajadorIdTrabajadorAndFechaCeseIsNull(id).stream()
+                .filter(p -> fecha.isBefore(p.getFechaIngreso())).findFirst().ifPresent(p -> {
+                    throw new ReglaNegocioException("La fecha de cese no puede ser anterior al ingreso ("
+                            + p.getFechaIngreso() + ").");
+                });
         periodoRepository.findByTrabajadorIdTrabajadorAndFechaCeseIsNull(id).forEach(p -> p.setFechaCese(fecha));
         asignacionRepository.findByTrabajadorIdTrabajadorAndFechaFinIsNull(id).forEach(a -> a.setFechaFin(fecha));
         trabajador.setEstado(EstadoTrabajador.CESADO);
@@ -116,6 +128,15 @@ public class TrabajadorService {
         if (campana == null || campana.isBlank() || fechaIngreso == null) {
             throw new ReglaNegocioException("Indique la campaña y la fecha de reingreso.");
         }
+        validarCampana(campana);
+        if (fechaIngreso.isAfter(LocalDate.now())) {
+            throw new ReglaNegocioException("La fecha de reingreso no puede ser futura.");
+        }
+        periodoRepository.findByTrabajadorIdTrabajadorOrderByFechaIngresoDesc(id).stream()
+                .map(p -> p.getFechaCese()).filter(java.util.Objects::nonNull).max(LocalDate::compareTo)
+                .filter(ultimoCese -> fechaIngreso.isBefore(ultimoCese)).ifPresent(ultimoCese -> {
+                    throw new ReglaNegocioException("El reingreso no puede ser anterior al último cese (" + ultimoCese + ").");
+                });
         if (idSede != null) {
             trabajador.setSede(sedeRepository.findById(idSede)
                     .orElseThrow(() -> new ReglaNegocioException("Sede no encontrada.")));
@@ -125,12 +146,18 @@ public class TrabajadorService {
         asignarActividad(trabajador, idActividad, fechaIngreso);
     }
 
+    private void validarCampana(String campana) {
+        if (campana.trim().length() > 100) {
+            throw new ReglaNegocioException("El nombre de la campaña admite hasta 100 caracteres.");
+        }
+    }
+
     private void asignarActividad(Trabajador trabajador, Integer idActividad, LocalDate desde) {
         if (idActividad == null) {
             return;
         }
         Actividad actividad = actividadRepository.findById(idActividad)
-                .orElseThrow(() -> new ReglaNegocioException("Actividad no encontrada."));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Actividad no encontrada."));
         asignacionRepository.findByTrabajadorIdTrabajadorAndFechaFinIsNull(trabajador.getIdTrabajador())
                 .forEach(a -> a.setFechaFin(desde));
         asignacionRepository.save(new AsignacionActividad(trabajador, actividad, desde));

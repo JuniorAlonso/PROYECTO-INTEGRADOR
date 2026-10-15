@@ -9,7 +9,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import pe.utp.epptrack.model.Epp;
 import pe.utp.epptrack.repository.CategoriaEppRepository;
 import pe.utp.epptrack.repository.EppRepository;
-import pe.utp.epptrack.service.ReglaNegocioException;
+import pe.utp.epptrack.service.RecursoNoEncontradoException;
 
 /** Catálogo de EPP con categoría y vida útil (RF-02, CU-03). */
 @Controller
@@ -44,7 +44,7 @@ public class EppController {
     @GetMapping("/{id}/editar")
     public String editar(@PathVariable Integer id, Model model) {
         model.addAttribute("epp", eppRepository.findById(id)
-                .orElseThrow(() -> new ReglaNegocioException("EPP no encontrado.")));
+                .orElseThrow(() -> new RecursoNoEncontradoException("EPP no encontrado.")));
         model.addAttribute("categorias", categoriaRepository.findAllByOrderByNombreAsc());
         return "epp/formulario";
     }
@@ -68,7 +68,7 @@ public class EppController {
     /** Los EPP no se eliminan (tienen entregas asociadas): se desactivan para que no se ofrezcan en nuevas entregas. */
     @PostMapping("/{id}/estado")
     public String cambiarEstado(@PathVariable Integer id, RedirectAttributes flash) {
-        Epp epp = eppRepository.findById(id).orElseThrow(() -> new ReglaNegocioException("EPP no encontrado."));
+        Epp epp = eppRepository.findById(id).orElseThrow(() -> new RecursoNoEncontradoException("EPP no encontrado."));
         epp.setEstado(epp.isActivo() ? Epp.INACTIVO : Epp.ACTIVO);
         eppRepository.save(epp);
         flash.addFlashAttribute("exito", epp.getNombre() + (epp.isActivo() ? " activado." : " desactivado."));

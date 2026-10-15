@@ -39,7 +39,7 @@
             <span class="text-muted small">
                 <i class="bi bi-person-circle"></i>
                 <span sec:authentication="name">usuario</span>
-                (<span sec:authentication="principal.authorities">rol</span>)
+                (<span sec:authorize="hasRole('ADMIN')">Administrador</span><span sec:authorize="hasRole('SUPERVISOR')">Supervisor</span><span sec:authorize="hasRole('RRHH')">Recursos Humanos</span>)
             </span>
             <form th:action="@{/logout}" method="post">
                 <button class="btn btn-sm btn-outline-secondary">Salir</button>

@@ -81,6 +81,9 @@ public class EntregaController {
                             Model model, RedirectAttributes flash) {
         Trabajador trabajador;
         try {
+            if (form.getIdTrabajador() == null) {
+                throw new ReglaNegocioException("Busque primero al trabajador por su DNI.");
+            }
             trabajador = trabajadorService.obtener(form.getIdTrabajador());
         } catch (ReglaNegocioException e) {
             flash.addFlashAttribute("error", e.getMessage());
