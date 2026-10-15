@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Matriz de asignación · EPPTrack</title></head>
+<body>
+<section>
+    <h1 class="h4 mb-3">Matriz de asignación de EPP</h1>
+    <div class="row g-3">
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="list-group list-group-flush" style="max-height: 70vh; overflow-y: auto">
+                    <th:block th:each="grupo : ${porProceso}">
+                        <div class="list-group-item bg-light fw-semibold small" th:text="${grupo.key}"></div>
+                        <a th:each="a : ${grupo.value}" class="list-group-item list-group-item-action d-flex justify-content-between"
+                           th:classappend="${seleccionada != null and a.idActividad == seleccionada.idActividad} ? active"
+                           th:href="@{/matriz(actividad=${a.idActividad})}">
+                            <span th:text="${a.nombre}"></span>
+                            <span class="badge text-bg-secondary" th:text="${reglasPorActividad[a.idActividad] ?: 0}"></span>
+                        </a>
+                    </th:block>
+                </div>
+            </div>
+            <form sec:authorize="hasRole('ADMIN')" class="card card-body mt-3" method="post" th:action="@{/matriz/actividades}">
+                <h2 class="h6">Nueva actividad</h2>
+                <input class="form-control mb-2" name="proceso" list="procesos" placeholder="Proceso" required>
+                <datalist id="procesos"><option th:each="p : ${procesos}" th:value="${p.nombre}"></option></datalist>
+                <input class="form-control mb-2" name="nombre" placeholder="Nombre de la actividad" required>
+                <button class="btn btn-outline-primary btn-sm">Crear actividad</button>
+            </form>
+        </div>
+
+        <div class="col-lg-8" th:if="${seleccionada != null}">
+            <div class="card"><div class="card-body">
+                <div class="text-muted small" th:text="${seleccionada.proceso.nombre}"></div>
+                <h2 class="h5" th:text="${seleccionada.nombre}"></h2>
+                <table class="table align-middle">
+                    <thead><tr><th>Categoría</th><th>EPP</th><th class="text-end">Cantidad</th><th>Obligatorio</th><th></th></tr></thead>
+                    <tbody>
+                    <tr th:each="r : ${reglas}">
+                        <td th:text="${r.epp.categoria.nombre}"></td>
+                        <td th:text="${r.epp.nombre}"></td>
+                        <td class="text-end" th:text="${r.cantidad}"></td>
+                        <td th:text="${r.obligatorio} ? 'Sí' : 'No'"></td>
+                        <td class="text-end" sec:authorize="hasRole('ADMIN')">
+                            <form method="post" th:action="@{/matriz/{id}/quitar(id=${r.idMatriz})}">
+                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-x-lg"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(reglas)}"><td colspan="5" class="text-muted">Esta actividad aún no tiene EPP asignados.</td></tr>
+                    </tbody>
+                </table>
+
+                <form sec:authorize="hasRole('ADMIN')" class="row g-2 align-items-end" method="post" th:action="@{/matriz}">
+                    <input type="hidden" name="idActividad" th:value="${seleccionada.idActividad}">
+                    <div class="col-md-6">
+                        <label class="form-label small">Agregar EPP</label>
+                        <select class="form-select" name="idEpp" required>
+                            <option th:each="e : ${epps}" th:value="${e.idEpp}" th:text="${e.categoria.nombre + ' — ' + e.nombre}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Cantidad</label>
+                        <input class="form-control" type="number" name="cantidad" min="1" value="1">
+                    </div>
+                    <div class="col-md-2 form-check ms-2 mb-2">
+                        <input class="form-check-input" type="checkbox" name="obligatorio" value="true" id="obl" checked>
+                        <label class="form-check-label small" for="obl">Obligatorio</label>
+                    </div>
+                    <div class="col-md-auto"><button class="btn btn-primary">Agregar</button></div>
+                </form>
+            </div></div>
+        </div>
+    </div>
+</section>
+</body>
+</html>

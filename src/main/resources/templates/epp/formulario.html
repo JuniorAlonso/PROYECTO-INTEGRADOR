@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head><title>EPP · EPPTrack</title></head>
+<body>
+<section>
+    <h1 class="h4 mb-3" th:text="${epp.idEpp == null} ? 'Nuevo EPP' : 'Editar EPP'"></h1>
+    <form class="card card-body" method="post" th:action="@{/epp}" th:object="${epp}">
+        <input type="hidden" th:field="*{idEpp}">
+        <input type="hidden" th:field="*{estado}">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Categoría</label>
+                <select class="form-select" name="categoria" th:classappend="${#fields.hasErrors('categoria')} ? is-invalid">
+                    <option value="">Seleccione…</option>
+                    <option th:each="c : ${categorias}" th:value="${c.idCategoria}" th:text="${c.nombre}"
+                            th:selected="${epp.categoria != null and epp.categoria.idCategoria == c.idCategoria}"></option>
+                </select>
+                <div class="invalid-feedback" th:errors="*{categoria}"></div>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">Nombre</label>
+                <input class="form-control" th:field="*{nombre}" th:errorclass="is-invalid">
+                <div class="invalid-feedback" th:errors="*{nombre}"></div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Vida útil (días)</label>
+                <input class="form-control" type="number" min="1" th:field="*{vidaUtilDias}" th:errorclass="is-invalid">
+                <div class="invalid-feedback" th:errors="*{vidaUtilDias}"></div>
+            </div>
+            <div class="col-12">
+                <label class="form-label">Descripción</label>
+                <input class="form-control" th:field="*{descripcion}">
+            </div>
+        </div>
+        <div class="form-text mt-2">Un cambio de vida útil aplica a las entregas nuevas; las ya registradas conservan su fecha de renovación.</div>
+        <div class="mt-4 d-flex gap-2">
+            <button class="btn btn-primary">Guardar</button>
+            <a class="btn btn-outline-secondary" th:href="@{/epp}">Cancelar</a>
+        </div>
+    </form>
+</section>
+</body>
+</html>

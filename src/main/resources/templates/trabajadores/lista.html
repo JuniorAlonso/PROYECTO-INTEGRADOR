@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Trabajadores · EPPTrack</title></head>
+<body>
+<section>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4 mb-0">Gestión de trabajadores</h1>
+        <a sec:authorize="hasAnyRole('ADMIN','RRHH')" class="btn btn-primary" th:href="@{/trabajadores/nuevo}">
+            <i class="bi bi-person-plus"></i> Nuevo trabajador</a>
+    </div>
+
+    <form class="row g-2 mb-3" method="get">
+        <div class="col-md-4"><input class="form-control" name="q" th:value="${q}" placeholder="Buscar por DNI o nombre"></div>
+        <div class="col-md-3">
+            <select class="form-select" name="sede">
+                <option value="">Todas las sedes</option>
+                <option th:each="s : ${sedes}" th:value="${s.idSede}" th:text="${s.nombre}"
+                        th:selected="${s.idSede == sedeSeleccionada}"></option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" name="estado">
+                <option value="">Todos los estados</option>
+                <option th:each="e : ${estados}" th:value="${e}" th:text="${e.etiqueta}"
+                        th:selected="${e == estadoSeleccionado}"></option>
+            </select>
+        </div>
+        <div class="col-md-2"><button class="btn btn-outline-primary w-100">Filtrar</button></div>
+    </form>
+
+    <div class="card"><div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+            <tr><th>DNI</th><th>Apellidos y nombres</th><th>Puesto</th><th>Sede</th><th>Estado</th><th>Dotación</th><th></th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="t : ${trabajadores}" th:with="d=${dotacion[t.idTrabajador]}">
+                <td th:text="${t.dni}"></td>
+                <td th:text="${t.nombreCompleto}"></td>
+                <td th:text="${t.puesto.nombre}"></td>
+                <td th:text="${t.sede.nombre}"></td>
+                <td><span class="badge text-bg-light border" th:text="${t.estado.etiqueta}"></span></td>
+                <td>
+                    <span th:if="${d == null}" class="text-muted">—</span>
+                    <span th:if="${d != null and d.completa}" class="badge text-bg-success">Completa</span>
+                    <span th:if="${d != null and !d.completa}" class="badge text-bg-danger"
+                          th:title="${#strings.listJoin(d.faltantes.![epp.nombre], ', ')}"
+                          th:text="'Faltan ' + ${#lists.size(d.faltantes)}"></span>
+                </td>
+                <td class="text-end">
+                    <a sec:authorize="hasAnyRole('ADMIN','RRHH')" class="btn btn-sm btn-outline-secondary"
+                       th:href="@{/trabajadores/{id}/editar(id=${t.idTrabajador})}"><i class="bi bi-pencil"></i></a>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(trabajadores)}"><td colspan="7" class="text-muted">No se encontraron trabajadores.</td></tr>
+            </tbody>
+        </table>
+    </div></div>
+</section>
+</body>
+</html>

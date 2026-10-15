@@ -1,0 +1,132 @@
+package pe.utp.epptrack.service;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
+import pe.utp.epptrack.DatosPrueba;
+import pe.utp.epptrack.dto.EntregaForm;
+import pe.utp.epptrack.model.*;
+import pe.utp.epptrack.repository.CorreccionEntregaRepository;
+import pe.utp.epptrack.repository.DetalleEntregaRepository;
+import pe.utp.epptrack.repository.HistorialEppRepository;
+
+import java.time.LocalDate;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+@SpringBootTest
+@ActiveProfiles("test")
+@Transactional
+class EntregaServiceTest {
+
+    @Autowired DatosPrueba datos;
+    @Autowired EntregaService entregaService;
+    @Autowired DetalleEntregaRepository detalleRepository;
+    @Autowired HistorialEppRepository historialRepository;
+    @Autowired CorreccionEntregaRepository correccionRepository;
+    @Autowired TrabajadorService trabajadorService;
+
+    Trabajador trabajador;
+
+    @BeforeEach
+    void preparar() {
+        datos.cargar();
+        trabajador = datos.trabajador("10000001", LocalDate.now().minusDays(10));
+    }
+
+    @Test
+    void calculaFechaDeRenovacionSegunVidaUtil() {   // RF-06, RN-03
+        LocalDate fecha = LocalDate.now().minusDays(5);
+        Entrega entrega = entregaService.registrar(datos.formulario(trabajador, fecha, datos.respirador), "sup-test");
+
+        DetalleEntrega detalle = entrega.getDetalles().getFirst();
+        assertThat(detalle.getFechaRenovacion()).isEqualTo(fecha.plusDays(365));
+        assertThat(detalle.getEstadoVigencia()).isEqualTo(EstadoVigencia.VIGENTE);
+        assertThat(entrega.getUsuario().getNombreUsuario()).isEqualTo("sup-test");   // RN-02
+    }
+
+    @Test
+    void entregaAntiguaQuedaVencidaOPorVencer() {
+        Entrega entrega = entregaService.registrar(
+                datos.formulario(trabajador, LocalDate.now().minusDays(40), datos.guantes, datos.respirador), "sup-test");
+
+        assertThat(entrega.getDetalles()).extracting(DetalleEntrega::getEstadoVigencia)
+                .containsExactly(EstadoVigencia.VENCIDO, EstadoVigencia.VIGENTE);
+
+        Entrega reciente = entregaService.registrar(
+                datos.formulario(trabajador, LocalDate.now().minusDays(20), datos.guantes), "sup-test");
+        assertThat(reciente.getDetalles().getFirst().getEstadoVigencia()).isEqualTo(EstadoVigencia.POR_VENCER);
+    }
+
+    @Test
+    void bloqueaEntregaDuplicadaSinJustificacion() {   // RF-07
+        entregaService.registrar(datos.formulario(trabajador, LocalDate.now(), datos.respirador), "sup-test");
+
+        EntregaForm otra = datos.formulario(trabajador, LocalDate.now(), datos.respirador, datos.casco);
+        assertThat(entregaService.duplicadosSinJustificar(otra)).containsExactly(datos.respirador.getIdEpp());
+        assertThatThrownBy(() -> entregaService.registrar(otra, "sup-test"))
+                .isInstanceOf(ReglaNegocioException.class);
+    }
+
+    @Test
+    void duplicadoJustificadoReemplazaElAnterior() {   // RF-07, RN-05
+        Entrega primera = entregaService.registrar(datos.formulario(trabajador, LocalDate.now(), datos.respirador), "sup-test");
+
+        EntregaForm otra = datos.formulario(trabajador, LocalDate.now(), datos.respirador);
+        otra.getItems().getFirst().setJustificacion("Se rompió la válvula");
+        Entrega segunda = entregaService.registrar(otra, "sup-test");
+
+        DetalleEntrega anterior = detalleRepository.findById(primera.getDetalles().getFirst().getIdDetalle()).orElseThrow();
+        assertThat(anterior.getEstadoVigencia()).isEqualTo(EstadoVigencia.RENOVADO);
+        assertThat(segunda.getDetalles().getFirst().getJustificacionDuplicado()).isEqualTo("Se rompió la válvula");
+        assertThat(historialRepository.findByTrabajadorIdTrabajadorOrderByFechaRegistroDescIdHistorialDesc(trabajador.getIdTrabajador()))
+                .extracting(HistorialEpp::getTipoMovimiento)
+                .contains(HistorialEpp.ENTREGA, HistorialEpp.RENOVADO, HistorialEpp.ENTREGA_DUPLICADA);
+    }
+
+    @Test
+    void renovarUnEppVencidoNoEsDuplicado() {
+        entregaService.registrar(datos.formulario(trabajador, LocalDate.now().minusDays(40), datos.guantes), "sup-test");
+        EntregaForm renovacion = datos.formulario(trabajador, LocalDate.now(), datos.guantes);
+
+        assertThat(entregaService.duplicadosSinJustificar(renovacion)).isEmpty();
+        Entrega entrega = entregaService.registrar(renovacion, "sup-test");
+        assertThat(entrega.getDetalles().getFirst().isDuplicadoJustificado()).isFalse();
+    }
+
+    @Test
+    void anularNoBorraYDejaCorreccion() {   // RNF-03, RN-05, RF-13
+        Entrega entrega = entregaService.registrar(datos.formulario(trabajador, LocalDate.now(), datos.casco), "sup-test");
+        Integer idDetalle = entrega.getDetalles().getFirst().getIdDetalle();
+
+        entregaService.anularDetalle(idDetalle, "Se registró al trabajador equivocado", "sup-test");
+
+        assertThat(detalleRepository.findById(idDetalle)).get()
+                .extracting(DetalleEntrega::getEstadoVigencia).isEqualTo(EstadoVigencia.ANULADO);
+        List<CorreccionEntrega> correcciones = correccionRepository
+                .findByDetalleEntregaTrabajadorIdTrabajadorOrderByFechaCorreccionDesc(trabajador.getIdTrabajador());
+        assertThat(correcciones).hasSize(1);
+        assertThat(correcciones.getFirst().getValorAnterior()).contains("estado=VIGENTE");
+        assertThatThrownBy(() -> entregaService.anularDetalle(idDetalle, "otra vez", "sup-test"))
+                .isInstanceOf(ReglaNegocioException.class);
+    }
+
+    @Test
+    void noEntregaATrabajadorCesado() {
+        trabajadorService.registrarCese(trabajador.getIdTrabajador(), LocalDate.now());
+        assertThatThrownBy(() -> entregaService.registrar(datos.formulario(trabajador, LocalDate.now(), datos.casco), "sup-test"))
+                .isInstanceOf(ReglaNegocioException.class)
+                .hasMessageContaining("cesado");
+    }
+
+    @Test
+    void exigeAlMenosUnEpp() {
+        EntregaForm vacio = datos.formulario(trabajador, LocalDate.now());
+        assertThatThrownBy(() -> entregaService.registrar(vacio, "sup-test")).isInstanceOf(ReglaNegocioException.class);
+    }
+}

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Trabajador · EPPTrack</title></head>
+<body>
+<section th:with="nuevo=${trabajador.idTrabajador == null}">
+    <h1 class="h4 mb-3" th:text="${nuevo} ? 'Nuevo trabajador' : 'Editar trabajador'"></h1>
+
+    <form class="card card-body" method="post" th:object="${trabajador}"
+          th:action="${nuevo} ? @{/trabajadores} : @{/trabajadores/{id}(id=${trabajador.idTrabajador})}">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">DNI</label>
+                <input class="form-control" th:field="*{dni}" maxlength="8" th:errorclass="is-invalid">
+                <div class="invalid-feedback" th:errors="*{dni}"></div>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">Apellidos</label>
+                <input class="form-control" th:field="*{apellidos}" th:errorclass="is-invalid">
+                <div class="invalid-feedback" th:errors="*{apellidos}"></div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Nombres</label>
+                <input class="form-control" th:field="*{nombres}" th:errorclass="is-invalid">
+                <div class="invalid-feedback" th:errors="*{nombres}"></div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Fecha de nacimiento</label>
+                <input class="form-control" type="date" th:field="*{fechaNacimiento}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Puesto</label>
+                <select class="form-select" name="puesto" th:classappend="${#fields.hasErrors('puesto')} ? is-invalid">
+                    <option value="">Seleccione…</option>
+                    <option th:each="p : ${puestos}" th:value="${p.idPuesto}" th:text="${p.nombre + ' (' + p.area + ')'}"
+                            th:selected="${trabajador.puesto != null and trabajador.puesto.idPuesto == p.idPuesto}"></option>
+                </select>
+                <div class="invalid-feedback" th:errors="*{puesto}"></div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Sede</label>
+                <select class="form-select" name="sede" th:classappend="${#fields.hasErrors('sede')} ? is-invalid">
+                    <option value="">Seleccione…</option>
+                    <option th:each="s : ${sedes}" th:value="${s.idSede}" th:text="${s.nombre}"
+                            th:selected="${trabajador.sede != null and trabajador.sede.idSede == s.idSede}"></option>
+                </select>
+                <div class="invalid-feedback" th:errors="*{sede}"></div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Actividad (Matriz de EPP)</label>
+                <select class="form-select" name="idActividad">
+                    <option value="">Sin asignar</option>
+                    <option th:each="a : ${actividades}" th:value="${a.idActividad}"
+                            th:text="${a.proceso.nombre + ' — ' + a.nombre}"
+                            th:selected="${a.idActividad == idActividad}"></option>
+                </select>
+            </div>
+            <th:block th:if="${nuevo}">
+                <div class="col-md-6">
+                    <label class="form-label">Campaña</label>
+                    <input class="form-control" name="campana" th:value="${campana}" placeholder="Campaña uva 2026-2027" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Fecha de ingreso</label>
+                    <input class="form-control" type="date" name="fechaIngreso" th:value="${fechaIngreso}" required>
+                </div>
+            </th:block>
+        </div>
+        <div class="mt-4 d-flex gap-2">
+            <button class="btn btn-primary">Guardar</button>
+            <a class="btn btn-outline-secondary" th:href="@{/trabajadores}">Cancelar</a>
+        </div>
+    </form>
+</section>
+</body>
+</html>

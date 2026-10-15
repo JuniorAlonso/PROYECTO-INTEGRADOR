@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Catálogo de EPP · EPPTrack</title></head>
+<body>
+<section>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4 mb-0">Catálogo de EPP</h1>
+        <a sec:authorize="hasRole('ADMIN')" class="btn btn-primary" th:href="@{/epp/nuevo}">
+            <i class="bi bi-plus-lg"></i> Nuevo EPP</a>
+    </div>
+
+    <form class="row g-2 mb-3" method="get">
+        <div class="col-md-4">
+            <select class="form-select" name="categoria" onchange="this.form.submit()">
+                <option value="">Todas las categorías</option>
+                <option th:each="c : ${categorias}" th:value="${c.idCategoria}" th:text="${c.nombre}"
+                        th:selected="${c.idCategoria == categoriaSeleccionada}"></option>
+            </select>
+        </div>
+    </form>
+
+    <div class="card"><div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+            <tr><th>Categoría</th><th>EPP</th><th>Descripción</th><th class="text-end">Vida útil (días)</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="e : ${epps}" th:classappend="${!e.activo} ? 'text-muted'">
+                <td th:text="${e.categoria.nombre}"></td>
+                <td th:text="${e.nombre}"></td>
+                <td th:text="${e.descripcion}"></td>
+                <td class="text-end" th:text="${e.vidaUtilDias}"></td>
+                <td><span class="badge" th:classappend="${e.activo} ? 'text-bg-success' : 'text-bg-secondary'"
+                          th:text="${e.activo} ? 'Activo' : 'Inactivo'"></span></td>
+                <td class="text-end text-nowrap" sec:authorize="hasRole('ADMIN')">
+                    <a class="btn btn-sm btn-outline-secondary" th:href="@{/epp/{id}/editar(id=${e.idEpp})}"><i class="bi bi-pencil"></i></a>
+                    <form class="d-inline" method="post" th:action="@{/epp/{id}/estado(id=${e.idEpp})}">
+                        <button class="btn btn-sm btn-outline-secondary" th:text="${e.activo} ? 'Desactivar' : 'Activar'"></button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div></div>
+</section>
+</body>
+</html>

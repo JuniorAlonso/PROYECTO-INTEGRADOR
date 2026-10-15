@@ -1,0 +1,31 @@
+/* Identidad visual de EPPTrack (Anexo 21) */
+:root {
+    --ept-azul: #16325C;
+    --ept-accion: #2563B0;
+    --ept-verde: #1F8A5B;
+    --ept-ambar: #B7740A;
+    --ept-rojo: #C0392B;
+}
+
+body { background: #f4f6fa; }
+
+.sidebar {
+    width: 240px;
+    min-height: 100vh;
+    background: var(--ept-azul);
+}
+.sidebar .marca { color: #fff; font-weight: 700; font-size: 1.3rem; }
+.sidebar .nav-link { color: rgba(255, 255, 255, .8); border-radius: .4rem; }
+.sidebar .nav-link:hover { color: #fff; background: rgba(255, 255, 255, .08); }
+.sidebar .nav-link.active { color: #fff; background: var(--ept-accion); }
+.sidebar .nav-link.disabled { color: rgba(255, 255, 255, .35); }
+
+.btn-primary { background: var(--ept-accion); border-color: var(--ept-accion); }
+.text-bg-success { background-color: var(--ept-verde) !important; }
+.text-bg-warning { background-color: var(--ept-ambar) !important; color: #fff !important; }
+.text-bg-danger { background-color: var(--ept-rojo) !important; }
+
+.kpi { border: 0; border-left: 4px solid var(--ept-accion); }
+.kpi .valor { font-size: 2rem; font-weight: 700; }
+
+.login-fondo { background: var(--ept-azul); min-height: 100vh; }
