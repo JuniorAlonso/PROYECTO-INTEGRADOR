@@ -7,7 +7,7 @@
     <h1 class="h4 mb-3">Historial de EPP por trabajador</h1>
 
     <form class="row g-2 mb-4" method="get" th:action="@{/historial}">
-        <div class="col-md-5"><input class="form-control" name="q" th:value="${q}" placeholder="DNI o apellidos y nombres" autofocus></div>
+        <div class="col-md-5"><input class="form-control" name="q" th:value="${q}" maxlength="100" placeholder="DNI o apellidos y nombres" autofocus></div>
         <div class="col-md-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-search"></i> Buscar</button></div>
     </form>
 

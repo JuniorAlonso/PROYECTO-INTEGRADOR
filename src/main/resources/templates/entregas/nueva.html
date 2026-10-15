@@ -8,7 +8,7 @@
 
     <form class="row g-2 mb-4" method="get" th:action="@{/entregas/nueva}">
         <div class="col-md-4">
-            <input class="form-control" name="dni" th:value="${dni}" maxlength="8" placeholder="DNI del trabajador" autofocus>
+            <input class="form-control" name="dni" th:value="${dni}" maxlength="8" pattern="\d{8}" inputmode="numeric" title="8 dígitos" placeholder="DNI del trabajador" autofocus>
         </div>
         <div class="col-md-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-search"></i> Buscar</button></div>
     </form>
@@ -81,7 +81,7 @@
                                    th:field="*{items[__${i.index}__].cantidad}">
                         </td>
                         <td>
-                            <span th:if="${f.enUso == null}" class="badge text-bg-danger">No lo tiene</span>
+                            <span th:if="${f.enUso == null}" class="badge text-bg-danger">Sin EPP vigente</span>
                             <span th:if="${f.enUso != null}">
                                 <span class="badge" th:classappend="'text-bg-' + ${f.enUso.estadoVigencia.color}"
                                       th:text="${f.enUso.estadoVigencia.etiqueta}"></span>

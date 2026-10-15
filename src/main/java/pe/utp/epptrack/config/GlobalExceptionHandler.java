@@ -21,6 +21,12 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 
+    /** Choque con una restricción única (p. ej. dos altas simultáneas con el mismo DNI). */
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ModelAndView integridad(org.springframework.dao.DataIntegrityViolationException e) {
+        return error(HttpStatus.CONFLICT, "El registro ya existe o está siendo modificado por otro usuario. Revise e intente de nuevo.");
+    }
+
     private ModelAndView error(HttpStatus estado, String mensaje) {
         ModelAndView mv = new ModelAndView("error", estado);
         mv.addObject("status", estado.value());

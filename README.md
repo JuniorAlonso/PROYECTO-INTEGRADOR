@@ -88,7 +88,7 @@ templates/        Vistas Thymeleaf (layout común en fragments/layout.html)
 ./mvnw test
 ```
 
-47 pruebas con base H2 en memoria (no necesitan MySQL):
+51 pruebas con base H2 en memoria (no necesitan MySQL):
 - `EntregaServiceTest`: fecha de renovación, estados de vigencia, bloqueo de duplicados, anulación auditada.
 - `DotacionYTrabajadorServiceTest`: asignación por matriz, dotación completa/incompleta, DNI repetido, reingreso con historial.
 - `SeguridadTest`: login obligatorio y permisos por rol.

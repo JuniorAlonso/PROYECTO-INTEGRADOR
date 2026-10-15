@@ -28,6 +28,7 @@ public class EntregaService {
     private final TrabajadorRepository trabajadorRepository;
     private final EppRepository eppRepository;
     private final UsuarioRepository usuarioRepository;
+    private final PeriodoLaboralRepository periodoRepository;
     private final VigenciaService vigenciaService;
 
     public EntregaService(EntregaRepository entregaRepository,
@@ -37,6 +38,7 @@ public class EntregaService {
                           TrabajadorRepository trabajadorRepository,
                           EppRepository eppRepository,
                           UsuarioRepository usuarioRepository,
+                          PeriodoLaboralRepository periodoRepository,
                           VigenciaService vigenciaService) {
         this.entregaRepository = entregaRepository;
         this.detalleRepository = detalleRepository;
@@ -45,6 +47,7 @@ public class EntregaService {
         this.trabajadorRepository = trabajadorRepository;
         this.eppRepository = eppRepository;
         this.usuarioRepository = usuarioRepository;
+        this.periodoRepository = periodoRepository;
         this.vigenciaService = vigenciaService;
     }
 
@@ -98,14 +101,24 @@ public class EntregaService {
         if (seleccionados.stream().anyMatch(i -> i.getJustificacion() != null && i.getJustificacion().trim().length() > 450)) {
             throw new ReglaNegocioException("La justificación admite hasta 450 caracteres.");
         }
+        if (form.getIdTrabajador() == null) {
+            throw new ReglaNegocioException("Seleccione al trabajador.");
+        }
+        // Se bloquea al trabajador antes de revisar duplicados: dos registros simultáneos no pueden dejar dos EPP vigentes.
+        Trabajador trabajador = trabajadorRepository.findByIdParaActualizar(form.getIdTrabajador())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Trabajador no encontrado."));
         if (!duplicadosSinJustificar(form).isEmpty()) {
             throw new ReglaNegocioException("Hay EPP vigentes sin justificación de entrega duplicada.");
         }
-        Trabajador trabajador = trabajadorRepository.findById(form.getIdTrabajador())
-                .orElseThrow(() -> new RecursoNoEncontradoException("Trabajador no encontrado."));
         if (!trabajador.getEstado().isLaborando()) {
             throw new ReglaNegocioException("El trabajador está cesado; registre su reingreso antes de entregarle EPP.");
         }
+        periodoRepository.findByTrabajadorIdTrabajadorAndFechaCeseIsNull(trabajador.getIdTrabajador()).stream()
+                .map(PeriodoLaboral::getFechaIngreso).min(java.time.LocalDate::compareTo)
+                .filter(ingreso -> form.getFechaEntrega().isBefore(ingreso)).ifPresent(ingreso -> {
+                    throw new ReglaNegocioException("La fecha de entrega no puede ser anterior al ingreso del trabajador ("
+                            + ingreso + ").");
+                });
         Usuario responsable = usuarioRepository.findByNombreUsuario(nombreUsuario)
                 .orElseThrow(() -> new ReglaNegocioException("Usuario no encontrado."));
 
@@ -120,6 +133,9 @@ public class EntregaService {
         for (ItemEntregaForm item : seleccionados) {
             Epp epp = eppRepository.findById(item.getIdEpp())
                     .orElseThrow(() -> new RecursoNoEncontradoException("EPP no encontrado."));
+            if (!epp.isActivo()) {
+                throw new ReglaNegocioException("El EPP \"" + epp.getNombre() + "\" está desactivado en el catálogo.");
+            }
             DetalleEntrega detalle = new DetalleEntrega(epp, item.getCantidad(),
                     form.getFechaEntrega().plusDays(epp.getVidaUtilDias()));
             detalle.setEstadoVigencia(vigenciaService.calcular(detalle.getFechaRenovacion()));

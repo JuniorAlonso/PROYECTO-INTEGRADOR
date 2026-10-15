@@ -69,6 +69,10 @@ public class TrabajadorService {
         if (fechaIngreso.isAfter(LocalDate.now())) {
             throw new ReglaNegocioException("La fecha de ingreso no puede ser futura.");
         }
+        if (idActividad == null) {
+            throw new ReglaNegocioException("Seleccione la actividad del trabajador: de ella depende su dotación de EPP.");
+        }
+        normalizar(trabajador);
         trabajador.setEstado(EstadoTrabajador.ACTIVO);
         Trabajador guardado = trabajadorRepository.save(trabajador);
         periodoRepository.save(new PeriodoLaboral(guardado, campana.trim(), fechaIngreso, null));
@@ -83,6 +87,7 @@ public class TrabajadorService {
         if (trabajadorRepository.existsByDniAndIdTrabajadorNot(datos.getDni(), id)) {
             throw new ReglaNegocioException("El DNI " + datos.getDni() + " pertenece a otro trabajador.");
         }
+        normalizar(datos);
         trabajador.setDni(datos.getDni());
         trabajador.setApellidos(datos.getApellidos());
         trabajador.setNombres(datos.getNombres());
@@ -144,6 +149,13 @@ public class TrabajadorService {
         periodoRepository.save(new PeriodoLaboral(trabajador, campana.trim(), fechaIngreso, null));
         trabajador.setEstado(EstadoTrabajador.REINCORPORADO);
         asignarActividad(trabajador, idActividad, fechaIngreso);
+    }
+
+    /** Quita espacios sobrantes (también los dobles internos) para que las búsquedas y reportes coincidan. */
+    private void normalizar(Trabajador t) {
+        t.setDni(t.getDni() == null ? null : t.getDni().trim());
+        t.setApellidos(t.getApellidos() == null ? null : t.getApellidos().trim().replaceAll("\\s+", " "));
+        t.setNombres(t.getNombres() == null ? null : t.getNombres().trim().replaceAll("\\s+", " "));
     }
 
     private void validarCampana(String campana) {

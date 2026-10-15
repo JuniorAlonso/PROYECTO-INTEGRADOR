@@ -177,6 +177,7 @@ class ModulosWebTest {
                         .param("dni", "20000099").param("apellidos", "Nuevo").param("nombres", "Intruso")
                         .param("puesto", String.valueOf(datos.puesto.getIdPuesto()))
                         .param("sede", String.valueOf(datos.sede.getIdSede()))
+                        .param("idActividad", String.valueOf(datos.actividad.getIdActividad()))
                         .param("campana", "C1").param("fechaIngreso", LocalDate.now().toString()))
                 .andExpect(status().is3xxRedirection());
         // El trabajador original no cambió y se creó otro registro distinto
@@ -212,5 +213,20 @@ class ModulosWebTest {
 
     private void trabajadorCesado() {
         trabajadorService.registrarCese(trabajador.getIdTrabajador(), LocalDate.now().minusDays(1));
+    }
+
+    @Test
+    @WithMockUser(roles = "RRHH")
+    void fechaDeNacimientoFuturaSeRechazaEnElFormulario() throws Exception {
+        mvc.perform(post("/trabajadores").with(csrf())
+                        .param("dni", "20000077").param("apellidos", "Prueba").param("nombres", "Fecha")
+                        .param("fechaNacimiento", LocalDate.now().plusDays(1).toString())
+                        .param("puesto", String.valueOf(datos.puesto.getIdPuesto()))
+                        .param("sede", String.valueOf(datos.sede.getIdSede()))
+                        .param("idActividad", String.valueOf(datos.actividad.getIdActividad()))
+                        .param("campana", "C1").param("fechaIngreso", LocalDate.now().toString()))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeHasFieldErrors("trabajador", "fechaNacimiento"));
+        assertThat(trabajadorRepository.findByDni("20000077")).isEmpty();
     }
 }
