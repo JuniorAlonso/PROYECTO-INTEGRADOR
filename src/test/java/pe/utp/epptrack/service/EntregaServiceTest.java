@@ -129,4 +129,27 @@ class EntregaServiceTest {
         EntregaForm vacio = datos.formulario(trabajador, LocalDate.now());
         assertThatThrownBy(() -> entregaService.registrar(vacio, "sup-test")).isInstanceOf(ReglaNegocioException.class);
     }
+
+    @Test
+    void rechazaElMismoEppRepetidoEnUnaEntrega() {
+        EntregaForm form = datos.formulario(trabajador, LocalDate.now(), datos.respirador, datos.respirador);
+        assertThatThrownBy(() -> entregaService.registrar(form, "sup-test"))
+                .isInstanceOf(ReglaNegocioException.class).hasMessageContaining("repetirse");
+    }
+
+    @Test
+    void rechazaFechaDeEntregaFutura() {
+        EntregaForm form = datos.formulario(trabajador, LocalDate.now().plusDays(1), datos.respirador);
+        assertThatThrownBy(() -> entregaService.registrar(form, "sup-test"))
+                .isInstanceOf(ReglaNegocioException.class).hasMessageContaining("futura");
+    }
+
+    @Test
+    void cantidadInvalidaNoDejaNingunRegistroParcial() {
+        EntregaForm form = datos.formulario(trabajador, LocalDate.now(), datos.respirador);
+        form.getItems().getFirst().setCantidad(0);
+        assertThatThrownBy(() -> entregaService.registrar(form, "sup-test"))
+                .isInstanceOf(ReglaNegocioException.class);
+        assertThat(detalleRepository.findAll()).isEmpty();
+    }
 }

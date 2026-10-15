@@ -70,6 +70,13 @@ public class EntregaService {
                 .toList();
     }
 
+    /** Detalle de entrega por id, para anular o mostrar. */
+    @Transactional(readOnly = true)
+    public DetalleEntrega obtenerDetalle(Integer idDetalle) {
+        return detalleRepository.findById(idDetalle)
+                .orElseThrow(() -> new ReglaNegocioException("Registro de entrega no encontrado."));
+    }
+
     @Transactional
     public Entrega registrar(EntregaForm form, String nombreUsuario) {
         List<ItemEntregaForm> seleccionados = form.getSeleccionados();
@@ -78,6 +85,15 @@ public class EntregaService {
         }
         if (form.getFechaEntrega() == null || form.getMotivo() == null) {
             throw new ReglaNegocioException("Indique la fecha y el motivo de la entrega.");
+        }
+        if (form.getFechaEntrega().isAfter(java.time.LocalDate.now())) {
+            throw new ReglaNegocioException("La fecha de entrega no puede ser futura.");
+        }
+        if (seleccionados.stream().map(ItemEntregaForm::getIdEpp).distinct().count() != seleccionados.size()) {
+            throw new ReglaNegocioException("Un mismo EPP no puede repetirse en la misma entrega.");
+        }
+        if (seleccionados.stream().anyMatch(i -> i.getCantidad() == null || i.getCantidad() < 1)) {
+            throw new ReglaNegocioException("La cantidad de cada EPP debe ser al menos 1.");
         }
         if (!duplicadosSinJustificar(form).isEmpty()) {
             throw new ReglaNegocioException("Hay EPP vigentes sin justificación de entrega duplicada.");
@@ -99,9 +115,6 @@ public class EntregaService {
         entregaRepository.save(entrega);
 
         for (ItemEntregaForm item : seleccionados) {
-            if (item.getCantidad() == null || item.getCantidad() < 1) {
-                throw new ReglaNegocioException("La cantidad de cada EPP debe ser al menos 1.");
-            }
             Epp epp = eppRepository.findById(item.getIdEpp())
                     .orElseThrow(() -> new ReglaNegocioException("EPP no encontrado."));
             DetalleEntrega detalle = new DetalleEntrega(epp, item.getCantidad(),

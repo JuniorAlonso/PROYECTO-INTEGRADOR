@@ -126,7 +126,7 @@ public class TrabajadorController {
         } catch (ReglaNegocioException e) {
             flash.addFlashAttribute("error", e.getMessage());
         }
-        return "redirect:/trabajadores";
+        return volverAlHistorial(id);
     }
 
     @PostMapping("/{id}/reingreso")
@@ -142,7 +142,15 @@ public class TrabajadorController {
         } catch (ReglaNegocioException e) {
             flash.addFlashAttribute("error", e.getMessage());
         }
-        return "redirect:/trabajadores";
+        return volverAlHistorial(id);
+    }
+
+    private String volverAlHistorial(Integer id) {
+        try {
+            return "redirect:/historial?dni=" + trabajadorService.obtener(id).getDni();
+        } catch (ReglaNegocioException e) {
+            return "redirect:/trabajadores";
+        }
     }
 
     private String formulario(Model model, Integer idActividad) {

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Registro de entregas · EPPTrack</title></head>
+<body>
+<section>
+    <h1 class="h4 mb-3">Registro de entregas</h1>
+
+    <form class="row g-2 mb-4" method="get" th:action="@{/entregas/nueva}">
+        <div class="col-md-4">
+            <input class="form-control" name="dni" th:value="${dni}" maxlength="8" placeholder="DNI del trabajador" autofocus>
+        </div>
+        <div class="col-md-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-search"></i> Buscar</button></div>
+    </form>
+
+    <div th:if="${trabajador != null}">
+        <div class="card mb-3"><div class="card-body d-flex flex-wrap justify-content-between gap-3">
+            <div>
+                <div class="fw-semibold" th:text="${trabajador.nombreCompleto}"></div>
+                <div class="text-muted small">
+                    DNI <span th:text="${trabajador.dni}"></span> · <span th:text="${trabajador.puesto.nombre}"></span>
+                    · <span th:text="${trabajador.sede.nombre}"></span>
+                </div>
+                <div class="small mt-1">
+                    Actividad:
+                    <span th:if="${#lists.isEmpty(dotacion.actividades)}" class="text-muted">sin actividad asignada</span>
+                    <span th:each="a : ${dotacion.actividades}" class="badge text-bg-light border" th:text="${a.nombre}"></span>
+                </div>
+            </div>
+            <div class="text-end">
+                <span class="badge text-bg-light border" th:text="${trabajador.estado.etiqueta}"></span>
+                <div class="small mt-1">Dotación:
+                    <span th:if="${dotacion.completa}" class="badge text-bg-success">Completa</span>
+                    <span th:unless="${dotacion.completa}" class="badge text-bg-danger"
+                          th:text="${dotacion.cubiertos} + '/' + ${dotacion.obligatorios} + ' obligatorios'"></span>
+                </div>
+                <a class="small" th:href="@{/historial(dni=${trabajador.dni})}">Ver historial</a>
+            </div>
+        </div></div>
+
+        <div th:if="${!trabajador.estado.laborando}" class="alert alert-warning">
+            El trabajador está <strong>cesado</strong>. Registre su reingreso en el
+            <a th:href="@{/historial(dni=${trabajador.dni})}">historial</a> antes de entregarle EPP.
+        </div>
+
+        <form th:if="${trabajador.estado.laborando}" method="post" th:action="@{/entregas}" th:object="${form}">
+            <input type="hidden" th:field="*{idTrabajador}">
+            <div class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <label class="form-label">Fecha de entrega</label>
+                    <input class="form-control" type="date" th:field="*{fechaEntrega}" th:max="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Motivo</label>
+                    <select class="form-select" th:field="*{motivo}">
+                        <option th:each="m : ${motivos}" th:value="${m}" th:text="${m.etiqueta}"></option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card mb-3"><div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                    <tr><th></th><th>EPP</th><th>Categoría</th><th>Vida útil</th><th>Cant.</th><th>Situación actual</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="f, i : ${filas}" th:classappend="${duplicados.contains(f.epp.idEpp)} ? 'table-warning'">
+                        <td>
+                            <input type="hidden" th:field="*{items[__${i.index}__].idEpp}">
+                            <input class="form-check-input" type="checkbox" th:field="*{items[__${i.index}__].seleccionado}">
+                        </td>
+                        <td>
+                            <span th:text="${f.epp.nombre}"></span>
+                            <span th:if="${f.obligatorio}" class="badge text-bg-primary">Obligatorio</span>
+                            <span th:if="${!f.enMatriz}" class="badge text-bg-light border">Otro EPP</span>
+                        </td>
+                        <td th:text="${f.epp.categoria.nombre}"></td>
+                        <td><span th:text="${f.epp.vidaUtilDias}"></span> días</td>
+                        <td style="width:90px">
+                            <input class="form-control form-control-sm" type="number" min="1"
+                                   th:field="*{items[__${i.index}__].cantidad}">
+                        </td>
+                        <td>
+                            <span th:if="${f.enUso == null}" class="badge text-bg-danger">No lo tiene</span>
+                            <span th:if="${f.enUso != null}">
+                                <span class="badge" th:classappend="'text-bg-' + ${f.enUso.estadoVigencia.color}"
+                                      th:text="${f.enUso.estadoVigencia.etiqueta}"></span>
+                                hasta <span th:text="${#temporals.format(f.enUso.fechaRenovacion, 'dd/MM/yyyy')}"></span>
+                            </span>
+                            <div th:if="${f.enUso != null}" class="mt-1">
+                                <input class="form-control form-control-sm" th:field="*{items[__${i.index}__].justificacion}"
+                                       placeholder="Justificación si se entrega de nuevo"
+                                       th:classappend="${duplicados.contains(f.epp.idEpp)} ? 'is-invalid'">
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div></div>
+
+            <p class="text-muted small">
+                La fecha de renovación se calcula como fecha de entrega + vida útil de cada EPP.
+                Los registros de entrega no pueden eliminarse; solo anularse con motivo.
+            </p>
+            <button class="btn btn-primary"><i class="bi bi-check2-circle"></i> Registrar entrega</button>
+            <a class="btn btn-outline-secondary" th:href="@{/entregas/nueva}">Cancelar</a>
+        </form>
+    </div>
+</section>
+</body>
+</html>
