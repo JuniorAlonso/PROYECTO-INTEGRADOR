@@ -3,6 +3,10 @@
 Sistema web de trazabilidad y seguimiento de Equipos de Protección Personal (EPP) para Campos del Sur S.A.
 Proyecto Integrador I — UTP, sección 29007. Alfaro Carpio, Richard Rodrigo · Canchari Bedon, Junior Alonso.
 
+> **¿Continúas el proyecto con Claude Code?** Abre esta carpeta con Claude: lee automáticamente
+> [CLAUDE.md](CLAUDE.md), que resume el informe, lo que ya está hecho y los pasos pendientes en orden.
+> Puedes empezar diciéndole: *"Lee CLAUDE.md y continúa con el módulo de registro de entregas"*.
+
 **Stack:** Java 21+ · Spring Boot 3.5 · Spring MVC + Thymeleaf · Spring Data JPA · Spring Security · MySQL 8 · Maven.
 
 ## Cómo ejecutar
