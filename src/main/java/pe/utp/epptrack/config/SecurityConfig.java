@@ -10,6 +10,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import pe.utp.epptrack.repository.UsuarioRepository;
 
 import static pe.utp.epptrack.model.Rol.ADMIN;
@@ -27,17 +28,29 @@ import static pe.utp.epptrack.model.Rol.SUPERVISOR;
 @Configuration
 public class SecurityConfig {
 
+    /** Bootstrap y sus iconos vienen de jsDelivr; todo lo demás es del propio servidor. */
+    private static final String CSP = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; "
+            + "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; "
+            + "img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; "
+            + "form-action 'self'; frame-ancestors 'none'";
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login", "/css/**", "/img/**", "/error").permitAll()
+                .requestMatchers("/login", "/css/**", "/js/**", "/img/**", "/error").permitAll()
                 .requestMatchers(HttpMethod.POST, "/epp/**", "/matriz/**").hasRole(ADMIN)
                 .requestMatchers("/epp/nuevo", "/epp/*/editar").hasRole(ADMIN)
                 .requestMatchers(HttpMethod.POST, "/trabajadores/**").hasAnyRole(ADMIN, RRHH)
                 .requestMatchers("/trabajadores/nuevo", "/trabajadores/*/editar").hasAnyRole(ADMIN, RRHH)
-                .requestMatchers("/entregas/**", "/alertas/**", "/reportes/**").hasAnyRole(ADMIN, SUPERVISOR)
+                .requestMatchers("/entregas/**", "/alertas/**", "/radar/**", "/reportes/**").hasAnyRole(ADMIN, SUPERVISOR)
                 .anyRequest().authenticated())
+            .headers(h -> h
+                .contentSecurityPolicy(csp -> csp.policyDirectives(CSP))
+                .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31_536_000))
+                .frameOptions(f -> f.deny())
+                .referrerPolicy(r -> r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN))
+                .permissionsPolicyHeader(p -> p.policy("geolocation=(), camera=(), microphone=()")))
             .formLogin(form -> form
                 .loginPage("/login")
                 .defaultSuccessUrl("/", true)
