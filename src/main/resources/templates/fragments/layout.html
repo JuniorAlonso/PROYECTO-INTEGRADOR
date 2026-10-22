@@ -5,39 +5,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
     <title th:replace="${title}">EPPTrack</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/bricolage-grotesque@5/index.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/figtree@5/index.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/400.css">
     <link rel="stylesheet" th:href="@{/css/epptrack.css}">
 </head>
 <body>
+<a class="visually-hidden-focusable saltar" href="#contenido">Saltar al contenido</a>
 <div class="d-flex">
-    <nav class="sidebar p-3 flex-shrink-0">
-        <div class="marca mb-4"><i class="bi bi-shield-check"></i> EPPTrack</div>
+    <nav class="sidebar offcanvas-lg offcanvas-start flex-shrink-0" id="menu" tabindex="-1" aria-label="Menú principal">
+      <div class="p-3">
+        <div class="marca mb-4 d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-shield-check"></i> EPPTrack</span>
+            <button type="button" class="btn-close btn-close-white d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#menu" aria-label="Cerrar menú"></button>
+        </div>
         <ul class="nav flex-column gap-1">
             <li><a class="nav-link" th:classappend="${rutaActual == '/'} ? active" th:href="@{/}">
                 <i class="bi bi-speedometer2"></i> Dashboard</a></li>
+            <li class="nav-grupo" aria-hidden="true">Personas</li>
             <li><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/trabajadores')} ? active" th:href="@{/trabajadores}">
                 <i class="bi bi-people"></i> Trabajadores</a></li>
-            <li><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/epp')} ? active" th:href="@{/epp}">
-                <i class="bi bi-cone-striped"></i> Catálogo de EPP</a></li>
-            <li><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/matriz')} ? active" th:href="@{/matriz}">
-                <i class="bi bi-grid-3x3"></i> Matriz de asignación</a></li>
+            <li><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/historial')} ? active" th:href="@{/historial}">
+                <i class="bi bi-clock-history"></i> Historial</a></li>
+            <li class="nav-grupo" aria-hidden="true">Entregas de EPP</li>
             <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/entregas')} ? active" th:href="@{/entregas/nueva}">
                 <i class="bi bi-box-seam"></i> Registro de entregas</a></li>
             <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/alertas')} ? active" th:href="@{/alertas}">
                 <i class="bi bi-bell"></i> Vigencia y alertas</a></li>
-            <li><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/historial')} ? active" th:href="@{/historial}">
-                <i class="bi bi-clock-history"></i> Historial</a></li>
+            <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/radar')} ? active" th:href="@{/radar}">
+                <i class="bi bi-graph-up-arrow"></i> Radar de reposición <span class="nuevo">Nuevo</span></a></li>
+            <li class="nav-grupo" aria-hidden="true">Catálogo</li>
+            <li><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/epp')} ? active" th:href="@{/epp}">
+                <i class="bi bi-cone-striped"></i> Catálogo de EPP</a></li>
+            <li><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/matriz')} ? active" th:href="@{/matriz}">
+                <i class="bi bi-grid-3x3"></i> Matriz de asignación</a></li>
+            <li class="nav-grupo" aria-hidden="true">Informes</li>
             <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/reportes')} ? active" th:href="@{/reportes}">
                 <i class="bi bi-file-earmark-text"></i> Reportes</a></li>
         </ul>
+      </div>
     </nav>
 
-    <div class="flex-grow-1">
-        <header class="bg-white border-bottom px-4 py-2 d-flex justify-content-end align-items-center gap-3">
+    <div class="flex-grow-1 contenido">
+        <header class="bg-white border-bottom px-3 px-lg-4 py-2 d-flex justify-content-between justify-content-lg-end align-items-center gap-3">
+            <button class="btn btn-outline-secondary btn-sm d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#menu" aria-controls="menu" aria-label="Abrir menú">
+                <i class="bi bi-list"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary paleta-boton d-none d-md-inline-flex" data-paleta-abrir aria-label="Buscar o ir a… (Ctrl+K)">
+                <i class="bi bi-search"></i> Buscar o ir a… <kbd>Ctrl K</kbd>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary d-md-none" data-paleta-abrir aria-label="Buscar o ir a"><i class="bi bi-search"></i></button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="tema-boton" aria-label="Cambiar a modo oscuro" title="Cambiar tema"><i class="bi bi-moon-stars"></i></button>
             <span class="text-muted small">
-                <i class="bi bi-person-circle"></i>
+                <span class="avatar avatar-sm" aria-hidden="true" th:text="${#strings.toUpperCase(#strings.substring(#authentication.name,0,1))}">A</span>
                 <span sec:authentication="name">usuario</span>
                 (<span sec:authorize="hasRole('ADMIN')">Administrador</span><span sec:authorize="hasRole('SUPERVISOR')">Supervisor</span><span sec:authorize="hasRole('RRHH')">Recursos Humanos</span>)
             </span>
@@ -45,13 +70,51 @@
                 <button class="btn btn-sm btn-outline-secondary">Salir</button>
             </form>
         </header>
-        <main class="p-4">
-            <div th:if="${exito}" class="alert alert-success" th:text="${exito}"></div>
-            <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+        <main class="p-3 p-lg-4" id="contenido" tabindex="-1">
+            <div th:if="${exito}" class="alert alert-success alert-dismissible fade show" role="status" data-autocierre>
+                <i class="bi bi-check-circle-fill"></i> <span th:text="${exito}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button></div>
+            <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill"></i> <span th:text="${error}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button></div>
             <div th:replace="${content}"></div>
         </main>
     </div>
 </div>
+
+<dialog id="paleta" class="paleta no-imprimir" aria-label="Buscar o ir a">
+    <div class="paleta-campo"><i class="bi bi-search"></i>
+        <input id="paleta-texto" autocomplete="off" placeholder="Ir a una pantalla o escribe un DNI…" aria-label="Buscar"></div>
+    <ul class="paleta-lista" id="paleta-lista" role="listbox"></ul>
+    <div class="paleta-pie">↑ ↓ para moverte · Enter para abrir · Esc para cerrar</div>
+</dialog>
+
+<button type="button" id="asistente-abrir" class="asistente-boton no-imprimir" aria-label="Abrir asistente IA" title="Asistente IA">
+    <i class="bi bi-stars"></i>
+</button>
+<section id="asistente-panel" class="asistente-panel no-imprimir" hidden aria-label="Asistente IA" th:attr="data-url=@{/asistente}">
+    <header class="asistente-cabecera">
+        <div>
+            <strong>Asistente IA</strong>
+            <div class="small opacity-75">
+                Perfil: <span sec:authorize="hasRole('ADMIN')">Administrador</span><span sec:authorize="hasRole('SUPERVISOR')">Supervisor</span><span sec:authorize="hasRole('RRHH')">Recursos Humanos</span>
+            </div>
+        </div>
+        <div class="d-flex gap-1">
+            <button type="button" id="asistente-nuevo" class="btn btn-sm btn-outline-light" title="Nueva conversación" aria-label="Nueva conversación"><i class="bi bi-arrow-counterclockwise"></i></button>
+            <button type="button" id="asistente-cerrar" class="btn btn-sm btn-outline-light" title="Cerrar" aria-label="Cerrar asistente"><i class="bi bi-x-lg"></i></button>
+        </div>
+    </header>
+    <div id="asistente-chat" class="asistente-chat" aria-live="polite"></div>
+    <form id="asistente-form" class="asistente-form" data-sin-bloqueo>
+        <input id="asistente-texto" class="form-control" maxlength="2000" autocomplete="off" placeholder="Pregunta sobre EPP, vigencias o dotación…" required>
+        <button class="btn btn-primary" aria-label="Enviar"><i class="bi bi-send"></i></button>
+    </form>
+</section>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:src="@{/js/epptrack.js}"></script>
+<script th:src="@{/js/paleta.js}"></script>
+<script th:src="@{/js/asistente.js}"></script>
 </body>
 </html>

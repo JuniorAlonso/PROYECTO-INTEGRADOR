@@ -4,18 +4,20 @@
 <head><title>Matriz de asignación · EPPTrack</title></head>
 <body>
 <section>
-    <h1 class="h4 mb-3">Matriz de asignación de EPP</h1>
+    <h1 class="h4 mb-1">Matriz de asignación de EPP</h1>
+    <p class="subtitulo">Define qué EPP debe tener quien realiza cada actividad. El sistema usa esta tabla para saber qué falta.</p>
     <div class="row g-3">
         <div class="col-lg-4">
+            <div class="buscador mb-2"><i class="bi bi-search"></i><input type="search" class="form-control" data-filtrar="[data-actividad]" placeholder="Buscar actividad…" aria-label="Buscar actividad"></div>
             <div class="card">
                 <div class="list-group list-group-flush" style="max-height: 70vh; overflow-y: auto">
                     <th:block th:each="grupo : ${porProceso}">
-                        <div class="list-group-item bg-light fw-semibold small" th:text="${grupo.key}"></div>
-                        <a th:each="a : ${grupo.value}" class="list-group-item list-group-item-action d-flex justify-content-between"
+                        <div class="list-group-item grupo-proceso" th:text="${grupo.key}"></div>
+                        <a th:each="a : ${grupo.value}" data-actividad class="list-group-item list-group-item-action d-flex justify-content-between"
                            th:classappend="${seleccionada != null and a.idActividad == seleccionada.idActividad} ? active"
                            th:href="@{/matriz(actividad=${a.idActividad})}">
                             <span th:text="${a.nombre}"></span>
-                            <span class="badge text-bg-secondary" th:text="${reglasPorActividad[a.idActividad] ?: 0}"></span>
+                            <span class="badge conteo" th:text="${reglasPorActividad[a.idActividad] ?: 0}"></span>
                         </a>
                     </th:block>
                 </div>

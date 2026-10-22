@@ -48,6 +48,7 @@ public class DashboardService {
         datos.put("alertas", alertas.stream().limit(8).toList());
         datos.put("cumplimientoSedes", porSede);
         datos.putAll(entregasPorMes(idSede, 6));
+        datos.put("diasPorVencer", vigenciaService.getDiasPorVencer());
         datos.put("vigentes", detalleRepository.countByEstadoVigencia(EstadoVigencia.VIGENTE));
         return datos;
     }
@@ -73,7 +74,8 @@ public class DashboardService {
             totales.add((long) delMes.size());
             duplicadas.add(delMes.stream().filter(DetalleEntrega::isDuplicadoJustificado).count());
         }
+        long maximo = Math.max(1, totales.stream().mapToLong(Long::longValue).max().orElse(1));
         return Map.of("mesesEtiquetas", etiquetas, "mesesTotales", totales, "mesesDuplicadas", duplicadas,
-                "hoy", LocalDate.now());
+                "mesesMaximo", maximo, "hoy", LocalDate.now());
     }
 }

@@ -4,32 +4,33 @@
 <head><title>Reportes · EPPTrack</title></head>
 <body>
 <section>
-    <h1 class="h4 mb-3">Reportes</h1>
-    <p class="text-muted">Cada reporte se puede ver en pantalla, imprimir o guardar como PDF desde el navegador, y exportar a Excel (CSV).</p>
+    <h1 class="h4 mb-1">Reportes</h1>
+    <p class="subtitulo">Elige un reporte, ajusta los filtros y mira, imprime o exporta a Excel.</p>
+    
 
     <div class="row g-3">
         <div class="col-lg-6"><form class="card h-100" method="get" th:action="@{/reportes/R01}"><div class="card-body">
-            <h2 class="h6">R-01 · Cumplimiento de dotación por trabajador</h2>
+            <div class="d-flex gap-3 mb-3"><span class="icono-reporte"><i class="bi bi-people"></i></span><div><div class="cod text-muted">R-01</div><h2 class="h6 mb-1">Cumplimiento de dotación por trabajador</h2><p class="small text-muted mb-0">Quién tiene todos sus EPP y quién no, trabajador por trabajador.</p></div></div>
             <div class="row g-2 mb-3">
                 <div class="col"><select class="form-select" name="sede"><option value="">Todas las sedes</option>
                     <option th:each="s : ${sedes}" th:value="${s.idSede}" th:text="${s.nombre}"></option></select></div>
                 <div class="col"><select class="form-select" name="estado"><option value="">Todos</option>
                     <option value="COMPLETA">Completa</option><option value="INCOMPLETA">Incompleta</option></select></div>
             </div>
-            <button class="btn btn-primary btn-sm">Generar</button>
+            <button class="btn btn-primary">Generar reporte <i class="bi bi-arrow-right"></i></button>
         </div></form></div>
 
         <div class="col-lg-6"><form class="card h-100" method="get" th:action="@{/reportes/R02}"><div class="card-body">
-            <h2 class="h6">R-02 · Cumplimiento de dotación por sede</h2>
+            <div class="d-flex gap-3 mb-3"><span class="icono-reporte"><i class="bi bi-bar-chart-line"></i></span><div><div class="cod text-muted">R-02</div><h2 class="h6 mb-1">Cumplimiento de dotación por sede</h2><p class="small text-muted mb-0">Porcentaje de cumplimiento de cada sede frente a la meta.</p></div></div>
             <div class="row g-2 mb-3">
                 <div class="col"><select class="form-select" name="sede"><option value="">Todas las sedes</option>
                     <option th:each="s : ${sedes}" th:value="${s.idSede}" th:text="${s.nombre}"></option></select></div>
             </div>
-            <button class="btn btn-primary btn-sm">Generar</button>
+            <button class="btn btn-primary">Generar reporte <i class="bi bi-arrow-right"></i></button>
         </div></form></div>
 
         <div class="col-lg-6"><form class="card h-100" method="get" th:action="@{/reportes/R03}"><div class="card-body">
-            <h2 class="h6">R-03 · Vigencias y renovaciones de EPP</h2>
+            <div class="d-flex gap-3 mb-3"><span class="icono-reporte"><i class="bi bi-calendar-check"></i></span><div><div class="cod text-muted">R-03</div><h2 class="h6 mb-1">Vigencias y renovaciones de EPP</h2><p class="small text-muted mb-0">Qué EPP hay que renovar en los próximos días.</p></div></div>
             <div class="row g-2 mb-3">
                 <div class="col"><select class="form-select" name="sede"><option value="">Todas las sedes</option>
                     <option th:each="s : ${sedes}" th:value="${s.idSede}" th:text="${s.nombre}"></option></select></div>
@@ -37,17 +38,17 @@
                     <option th:each="c : ${categorias}" th:value="${c.idCategoria}" th:text="${c.nombre}"></option></select></div>
                 <div class="col-3"><input class="form-control" type="number" name="dias" value="30" min="0" max="3650" title="Días"></div>
             </div>
-            <button class="btn btn-primary btn-sm">Generar</button>
+            <button class="btn btn-primary">Generar reporte <i class="bi bi-arrow-right"></i></button>
         </div></form></div>
 
         <div class="col-lg-6"><form class="card h-100" method="get" th:action="@{/reportes/R04}"><div class="card-body">
-            <h2 class="h6">R-04 · Constancia de entrega por trabajador</h2>
+            <div class="d-flex gap-3 mb-3"><span class="icono-reporte"><i class="bi bi-file-earmark-check"></i></span><div><div class="cod text-muted">R-04</div><h2 class="h6 mb-1">Constancia de entrega por trabajador</h2><p class="small text-muted mb-0">El equivalente digital del formato en papel FOR-SST 9.3.2.</p></div></div>
             <div class="row g-2 mb-3">
                 <div class="col"><input class="form-control" name="dni" maxlength="8" placeholder="DNI" required></div>
                 <div class="col"><input class="form-control" type="date" name="desde" title="Desde"></div>
                 <div class="col"><input class="form-control" type="date" name="hasta" title="Hasta"></div>
             </div>
-            <button class="btn btn-primary btn-sm">Generar</button>
+            <button class="btn btn-primary">Generar reporte <i class="bi bi-arrow-right"></i></button>
         </div></form></div>
     </div>
 </section>

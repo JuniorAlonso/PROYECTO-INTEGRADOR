@@ -4,8 +4,9 @@
 <head><title>Trabajadores · EPPTrack</title></head>
 <body>
 <section>
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h4 mb-0">Gestión de trabajadores</h1>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 encabezado-pagina">
+        <div><h1 class="h4 mb-0">Gestión de trabajadores</h1>
+            <p class="subtitulo mb-0">Personal de la empresa y si ya tiene todos sus EPP (<span class="badge text-bg-success">Completa</span> o <span class="badge text-bg-danger">Faltan N</span>).</p></div>
         <a sec:authorize="hasAnyRole('ADMIN','RRHH')" class="btn btn-primary" th:href="@{/trabajadores/nuevo}">
             <i class="bi bi-person-plus"></i> Nuevo trabajador</a>
     </div>
@@ -13,35 +14,36 @@
     <form class="row g-2 mb-3" method="get">
         <div class="col-md-4"><input class="form-control" name="q" th:value="${q}" placeholder="Buscar por DNI o nombre"></div>
         <div class="col-md-3">
-            <select class="form-select" name="sede">
+            <select class="form-select" name="sede" data-autosubmit>
                 <option value="">Todas las sedes</option>
                 <option th:each="s : ${sedes}" th:value="${s.idSede}" th:text="${s.nombre}"
                         th:selected="${s.idSede == sedeSeleccionada}"></option>
             </select>
         </div>
         <div class="col-md-3">
-            <select class="form-select" name="estado">
+            <select class="form-select" name="estado" data-autosubmit>
                 <option value="">Todos los estados</option>
                 <option th:each="e : ${estados}" th:value="${e}" th:text="${e.etiqueta}"
                         th:selected="${e == estadoSeleccionado}"></option>
             </select>
         </div>
-        <div class="col-md-2"><button class="btn btn-outline-primary w-100">Filtrar</button></div>
+        <div class="col-md-2 d-flex gap-1"><button class="btn btn-outline-primary flex-grow-1">Filtrar</button>
+            <a class="btn btn-outline-secondary" th:href="@{/trabajadores}" title="Limpiar filtros" aria-label="Limpiar filtros"><i class="bi bi-x-lg"></i></a></div>
     </form>
 
     <div class="card"><div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table table-hover align-middle mb-0 tabla-fichas">
             <thead class="table-light">
             <tr><th>DNI</th><th>Apellidos y nombres</th><th>Puesto</th><th>Sede</th><th>Estado</th><th>Dotación</th><th></th></tr>
             </thead>
             <tbody>
             <tr th:each="t : ${trabajadores}" th:with="d=${dotacion[t.idTrabajador]}">
-                <td th:text="${t.dni}"></td>
-                <td th:text="${t.nombreCompleto}"></td>
-                <td th:text="${t.puesto.nombre}"></td>
-                <td th:text="${t.sede.nombre}"></td>
-                <td><span class="badge text-bg-light border" th:text="${t.estado.etiqueta}"></span></td>
-                <td>
+                <td data-etiqueta="DNI" class="cod" th:text="${t.dni}"></td>
+                <td data-etiqueta="Trabajador"><div class="d-flex align-items-center gap-2"><span class="avatar" aria-hidden="true" th:text="${#strings.toUpperCase(#strings.substring(t.nombres,0,1) + #strings.substring(t.apellidos,0,1))}">AB</span><span th:text="${t.nombreCompleto}"></span></div></td>
+                <td data-etiqueta="Puesto" th:text="${t.puesto.nombre}"></td>
+                <td data-etiqueta="Sede" th:text="${t.sede.nombre}"></td>
+                <td data-etiqueta="Estado"><span class="badge text-bg-light border" th:text="${t.estado.etiqueta}"></span></td>
+                <td data-etiqueta="Dotación">
                     <span th:if="${d == null}" class="text-muted">—</span>
                     <span th:if="${d != null and d.completa}" class="badge text-bg-success">Completa</span>
                     <span th:if="${d != null and !d.completa}" class="badge text-bg-danger"
@@ -49,13 +51,13 @@
                           th:text="'Faltan ' + ${#lists.size(d.faltantes)}"></span>
                 </td>
                 <td class="text-end text-nowrap">
-                    <a class="btn btn-sm btn-outline-primary" title="Historial"
+                    <a class="btn btn-sm btn-outline-primary" title="Historial" aria-label="Ver historial"
                        th:href="@{/historial(dni=${t.dni})}"><i class="bi bi-clock-history"></i></a>
                     <a sec:authorize="hasAnyRole('ADMIN','RRHH')" class="btn btn-sm btn-outline-secondary"
                        th:href="@{/trabajadores/{id}/editar(id=${t.idTrabajador})}"><i class="bi bi-pencil"></i></a>
                 </td>
             </tr>
-            <tr th:if="${#lists.isEmpty(trabajadores)}"><td colspan="7" class="text-muted">No se encontraron trabajadores.</td></tr>
+            <tr th:if="${#lists.isEmpty(trabajadores)}"><td colspan="7" class="vacio"><i class="bi bi-search"></i>No se encontraron trabajadores con esos filtros.</td></tr>
             </tbody>
         </table>
     </div></div>

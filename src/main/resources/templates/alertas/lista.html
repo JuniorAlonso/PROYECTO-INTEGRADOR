@@ -1,15 +1,16 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
 <head><title>Vigencia y alertas · EPPTrack</title></head>
 <body>
 <section>
-    <h1 class="h4 mb-3">Vigencia y alertas</h1>
+    <h1 class="h4 mb-1">Vigencia y alertas</h1>
+    <p class="subtitulo">Qué EPP hay que renovar y cuándo. Empieza por los <strong>vencidos</strong> y pulsa <em>Renovar</em> para entregar uno nuevo.</p>
 
     <form class="row g-2 mb-3" method="get" th:action="@{/alertas}">
         <input type="hidden" name="estado" th:value="${estado}">
         <div class="col-md-4">
-            <select class="form-select" name="sede" onchange="this.form.submit()">
+            <select class="form-select" name="sede" data-autosubmit>
                 <option value="">Todas las sedes</option>
                 <option th:each="s : ${sedes}" th:value="${s.idSede}" th:text="${s.nombre}"
                         th:selected="${s.idSede == sedeSeleccionada}"></option>
@@ -28,23 +29,23 @@
     <p class="text-muted small">Un EPP pasa a "por vencer" <span th:text="${diasPorVencer}"></span> días antes de su renovación.</p>
 
     <div class="card"><div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table table-hover align-middle mb-0 tabla-fichas">
             <thead class="table-light">
             <tr><th>Trabajador</th><th>DNI</th><th>Sede</th><th>EPP</th><th>Entrega</th><th>Renovación</th><th>Días</th><th>Estado</th><th></th></tr>
             </thead>
             <tbody>
-            <tr th:each="d : ${filas}" th:with="t=${d.entrega.trabajador}">
-                <td th:text="${t.nombreCompleto}"></td>
-                <td th:text="${t.dni}"></td>
-                <td th:text="${t.sede.nombre}"></td>
-                <td th:text="${d.epp.nombre}"></td>
-                <td th:text="${#temporals.format(d.entrega.fechaEntrega, 'dd/MM/yyyy')}"></td>
-                <td th:text="${#temporals.format(d.fechaRenovacion, 'dd/MM/yyyy')}"></td>
-                <td th:text="${d.diasRestantes}"></td>
-                <td><span class="badge" th:classappend="'text-bg-' + ${d.estadoVigencia.color}" th:text="${d.estadoVigencia.etiqueta}"></span></td>
-                <td class="text-end"><a class="btn btn-sm btn-outline-primary" th:href="@{/entregas/nueva(dni=${t.dni})}">Renovar</a></td>
+            <tr th:each="d : ${filas}" th:with="t=${d.entrega.trabajador}" th:classappend="${d.estadoVigencia.name() == 'VENCIDO'} ? 'fila-vencida'">
+                <td data-etiqueta="Trabajador" th:text="${t.nombreCompleto}"></td>
+                <td data-etiqueta="DNI" class="cod" th:text="${t.dni}"></td>
+                <td data-etiqueta="Sede" th:text="${t.sede.nombre}"></td>
+                <td data-etiqueta="EPP" th:text="${d.epp.nombre}"></td>
+                <td data-etiqueta="Entrega" th:text="${#temporals.format(d.entrega.fechaEntrega, 'dd/MM/yyyy')}"></td>
+                <td data-etiqueta="Renovación" th:text="${#temporals.format(d.fechaRenovacion, 'dd/MM/yyyy')}"></td>
+                <td data-etiqueta="Días" class="text-nowrap fw-semibold" th:text="${d.diasRestantes < 0} ? 'hace ' + ${-d.diasRestantes} + ' d' : ${d.diasRestantes} + ' d'"></td>
+                <td data-etiqueta="Estado"><span class="badge" th:classappend="'text-bg-' + ${d.estadoVigencia.color}" th:text="${d.estadoVigencia.etiqueta}"></span></td>
+                <td class="acciones text-end"><a class="btn btn-sm btn-outline-primary" th:href="@{/entregas/nueva(dni=${t.dni})}">Renovar</a></td>
             </tr>
-            <tr th:if="${#lists.isEmpty(filas)}"><td colspan="9" class="text-muted">Sin registros en esta categoría.</td></tr>
+            <tr th:if="${#lists.isEmpty(filas)}"><td colspan="9" class="vacio"><i class="bi bi-inbox"></i>Sin registros en esta categoría.</td></tr>
             </tbody>
         </table>
     </div></div>

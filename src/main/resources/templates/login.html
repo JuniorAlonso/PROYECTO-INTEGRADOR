@@ -6,29 +6,49 @@
     <title>Iniciar sesión · EPPTrack</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/bricolage-grotesque@5/index.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/figtree@5/index.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/400.css">
     <link rel="stylesheet" th:href="@{/css/epptrack.css}">
 </head>
-<body class="login-fondo d-flex align-items-center justify-content-center">
-<div class="card shadow" style="width: 380px">
-    <div class="card-body p-4">
-        <h1 class="h4 mb-1"><i class="bi bi-shield-check text-primary"></i> EPPTrack</h1>
-        <p class="text-muted small mb-4">Trazabilidad y seguimiento de EPP · Campos del Sur S.A.</p>
+<body>
+<div class="login-fondo">
+    <aside class="login-marca">
+        <div class="logo"><i class="bi bi-shield-check"></i> EPPTrack</div>
+        <div>
+            <h2>Cada EPP, desde la entrega hasta su vencimiento.</h2>
+            <p>Control de equipos de protección personal de Campos del Sur S.A. Sin papeles, sin duplicados.</p>
+        </div>
+        <div class="sello">Campos del Sur S.A. · Ica</div>
+    </aside>
+    <main class="login-form">
+        <div class="card">
+            <div class="card-body p-4 p-md-5">
+                <h1 class="h4 mb-1">Iniciar sesión</h1>
+                <p class="text-muted small mb-4">Ingresa con tu usuario del sistema.</p>
 
-        <div th:if="${param.error}" class="alert alert-danger py-2">Usuario o contraseña incorrectos. Tras 5 intentos fallidos la cuenta se bloquea 15 minutos.</div>
-        <div th:if="${param.salir}" class="alert alert-info py-2">Sesión cerrada.</div>
+                <div th:if="${param.error}" class="alert alert-danger py-2 small">Usuario o contraseña incorrectos. Tras 5 intentos fallidos la cuenta se bloquea 15 minutos.</div>
+                <div th:if="${param.salir}" class="alert alert-info py-2 small">Cerraste sesión.</div>
 
-        <form th:action="@{/login}" method="post">
-            <div class="mb-3">
-                <label class="form-label" for="username">Usuario</label>
-                <input class="form-control" id="username" name="username" required autofocus>
+                <form th:action="@{/login}" method="post">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="username">Usuario</label>
+                        <input class="form-control" id="username" name="username" required autofocus autocomplete="username">
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold" for="password">Contraseña</label>
+                        <div class="input-group">
+                            <input class="form-control" id="password" name="password" type="password" required autocomplete="current-password">
+                            <button class="btn btn-outline-secondary" type="button" data-ver-clave="password" aria-label="Mostrar contraseña"><i class="bi bi-eye"></i></button>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary w-100 py-2">Ingresar</button>
+                </form>
             </div>
-            <div class="mb-3">
-                <label class="form-label" for="password">Contraseña</label>
-                <input class="form-control" id="password" name="password" type="password" required>
-            </div>
-            <button class="btn btn-primary w-100">Ingresar</button>
-        </form>
-    </div>
+        </div>
+    </main>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:src="@{/js/epptrack.js}"></script>
 </body>
 </html>
