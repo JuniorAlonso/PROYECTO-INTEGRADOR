@@ -1,0 +1,37 @@
+# Uso: copiar .env.example a .env, completar los valores y ejecutar `docker compose up -d --build`.
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: epptrack
+      MYSQL_USER: ${DB_USER:?define DB_USER en .env}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?define DB_PASSWORD en .env}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?define DB_ROOT_PASSWORD en .env}
+    volumes:
+      - epptrack-db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DATOS_DEMO: ${DATOS_DEMO:-false}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    # Solo local: publicar el 8080 únicamente en la interfaz de loopback; Nginx hace de proxy HTTPS.
+    ports:
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  epptrack-db:

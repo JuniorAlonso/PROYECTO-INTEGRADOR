@@ -70,16 +70,55 @@ templates/        Vistas Thymeleaf (layout común en fragments/layout.html)
 - [x] **Reportes R-01 a R-04** (RF-11, RF-12): en pantalla, imprimir/PDF desde el navegador y exportación a Excel (CSV) — `ReporteController`, `ReporteService`
 - [x] Menú lateral activo según el rol del usuario
 
+- [x] **Asistente IA** (RF-16 a RF-20): botón flotante y panel de chat en todas las pantallas; responde solo con datos del sistema y según el rol — `AsistenteController`, `AsistenteService`, `ClaudeClient`
+- [x] Respaldo de la base (RNF-08), Docker y CI (ver abajo)
+
 ### Pendiente
-- [ ] Asistente IA (RF-16 a RF-20): ver `CLAUDE.md` sección 6.5.
-- [ ] Documentar el procedimiento de respaldo de la base (RNF-08).
 - [ ] Antes de un despliegue real: quitar los usuarios de demo y poner `app.datos-demo=false`.
+
+## Asistente IA
+
+Usa la API de Claude. Definir la clave **solo** por variable de entorno (nunca en el repositorio):
+
+```bash
+export ANTHROPIC_API_KEY=...        # PowerShell: $env:ANTHROPIC_API_KEY="..."
+```
+
+Sin la clave el asistente responde que no está configurado. Modelo configurable con `ASISTENTE_MODELO`.
+Cada consulta envía a la API un resumen de datos acotado a lo que el rol puede ver (RRHH no recibe vigencias ni
+entregas), incluye nombres y DNI de trabajadores: revisar con la empresa la base legal de este envío (Ley N.° 29733)
+antes de usarlo con datos reales. Límite de 10 consultas por minuto por usuario.
+
+## Despliegue con Docker
+
+```bash
+cp .env.example .env     # completar contraseñas; DATOS_DEMO=false
+docker compose up -d --build
+```
+
+La aplicación corre como usuario sin privilegios y se publica solo en `127.0.0.1:8080`; poner Nginx con HTTPS delante
+y mantener `COOKIE_SECURE=true`. Las cabeceras de seguridad (CSP, HSTS, X-Frame-Options, etc.) las envía la aplicación.
+
+## Respaldo de la base de datos (RNF-08)
+
+`scripts/respaldo.sh` genera un volcado comprimido de MySQL en `./backups` y conserva los últimos 30:
+
+```bash
+sh scripts/respaldo.sh
+# programado cada día a las 02:00 (crontab -e):
+0 2 * * * cd /ruta/a/epptrack && sh scripts/respaldo.sh >> backups/respaldo.log 2>&1
+```
+
+Restaurar: `gunzip -c backups/epptrack-AAAAMMDD-HHMMSS.sql.gz | docker compose exec -T db sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot epptrack'`.
+Copiar los respaldos fuera del servidor (otra sede o almacenamiento en la nube) y probar la restauración periódicamente.
 
 ## Seguridad y configuración
 
 - Contraseñas con BCrypt; cuenta bloqueada 15 min tras 5 intentos fallidos; sesión de 30 min sin actividad.
 - Variables de entorno: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DATOS_DEMO` (`false` en un despliegue real
   para no crear los usuarios de demostración) y `THYMELEAF_CACHE` (`true` en producción).
+- Cabeceras: CSP restrictiva (sin scripts inline), HSTS, X-Frame-Options DENY, Referrer-Policy y Permissions-Policy.
+  Cookie de sesión `HttpOnly`, `SameSite=Strict` y `Secure` con `COOKIE_SECURE=true`.
 - Las fechas de vigencia usan la hora de Lima aunque el servidor esté en otra zona.
 
 ## Pruebas
