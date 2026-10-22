@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Radar de reposición · EPPTrack</title></head>
+<body>
+<section>
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3 encabezado-pagina">
+        <div>
+            <h1 class="h4 mb-1"><i class="bi bi-graph-up-arrow"></i> Radar de reposición</h1>
+            <p class="subtitulo">Qué EPP vencerán en los próximos <span th:text="${horizonte}">90</span> días y cuántas unidades
+                necesitas tener listas. Compra antes, entrega sin apuros.</p>
+        </div>
+        <div class="d-flex gap-2 no-imprimir">
+            <form method="get" th:action="@{/radar}">
+                <select class="form-select" name="sede" data-autosubmit aria-label="Sede">
+                    <option value="">Todas las sedes</option>
+                    <option th:each="s : ${sedes}" th:value="${s.idSede}" th:text="${s.nombre}"
+                            th:selected="${s.idSede == sedeSeleccionada}"></option>
+                </select>
+            </form>
+            <a class="btn btn-primary" th:href="@{/radar/compras.csv(sede=${sedeSeleccionada})}">
+                <i class="bi bi-download"></i> Lista de compra</a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-sm-4"><div class="card kpi" style="border-top-color: var(--ept-rojo)"><div class="card-body">
+            <div class="text-muted small"><i class="bi bi-exclamation-octagon"></i> Reponer ya</div>
+            <div class="valor" th:text="${radar.vencidos}">0</div>
+            <div class="small text-muted">unidades vencidas sin reemplazo</div></div></div></div>
+        <div class="col-12 col-sm-4"><div class="card kpi" style="border-top-color: var(--ept-ambar)"><div class="card-body">
+            <div class="text-muted small"><i class="bi bi-hourglass-split"></i> Próximos 30 días</div>
+            <div class="valor" th:text="${radar.proximos30}">0</div>
+            <div class="small text-muted">unidades por renovar este mes</div></div></div></div>
+        <div class="col-12 col-sm-4"><div class="card kpi"><div class="card-body">
+            <div class="text-muted small"><i class="bi bi-box-seam"></i> Total a comprar</div>
+            <div class="valor" th:text="${radar.total}">0</div>
+            <div class="small text-muted">unidades en <span th:text="${horizonte}">90</span> días</div></div></div></div>
+    </div>
+
+    <div class="card mb-3"><div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
+            <h2 class="h6 mb-0">Vencimientos por semana</h2>
+            <div class="small" th:if="${radar.pico != null}">
+                <i class="bi bi-lightning-charge-fill text-warning"></i>
+                La semana del <strong th:text="${#temporals.format(radar.pico.inicio, 'dd/MM')}">01/01</strong> concentra
+                <strong th:text="${radar.pico.unidades}">0</strong> unidades: programa la compra y las entregas con tiempo.
+            </div>
+            <div class="small text-muted" th:unless="${radar.pico != null}">No hay renovaciones previstas en este periodo.</div>
+        </div>
+        <div class="semanas" role="img" aria-label="Unidades que vencen cada semana, próximas 13 semanas">
+            <div th:each="s, i : ${radar.semanas}" class="semana" th:classappend="${radar.pico != null and s == radar.pico} ? pico">
+                <span class="semana-valor" th:text="${s.unidades}">0</span>
+                <div class="semana-barra" th:style="'height:' + ${s.unidades * 100 / radar.maxSemana} + '%'"></div>
+                <span class="semana-etiqueta" th:text="${#temporals.format(s.inicio, 'dd/MM')}">01/01</span>
+            </div>
+        </div>
+    </div></div>
+
+    <div class="card"><div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>EPP</th><th>Categoría</th><th style="width:34%">Cuándo vence</th>
+                <th class="text-end">Ya</th><th class="text-end">30 d</th><th class="text-end">60 d</th><th class="text-end">90 d</th>
+                <th class="text-end">Total</th></tr></thead>
+            <tbody>
+            <tr th:each="f : ${radar.filas}">
+                <td class="fw-semibold" th:text="${f.epp.nombre}"></td>
+                <td class="text-muted small" th:text="${f.epp.categoria.nombre}"></td>
+                <td>
+                    <div class="apilada" th:title="'Ya: ' + ${f.vencidos} + ' · 30 d: ' + ${f.hasta30} + ' · 60 d: ' + ${f.hasta60} + ' · 90 d: ' + ${f.hasta90}">
+                        <span class="tramo t-ya" th:style="'width:' + ${f.vencidos * 100 / radar.maxFila} + '%'"></span>
+                        <span class="tramo t-30" th:style="'width:' + ${f.hasta30 * 100 / radar.maxFila} + '%'"></span>
+                        <span class="tramo t-60" th:style="'width:' + ${f.hasta60 * 100 / radar.maxFila} + '%'"></span>
+                        <span class="tramo t-90" th:style="'width:' + ${f.hasta90 * 100 / radar.maxFila} + '%'"></span>
+                    </div>
+                </td>
+                <td class="text-end cod" th:text="${f.vencidos}"></td>
+                <td class="text-end cod" th:text="${f.hasta30}"></td>
+                <td class="text-end cod" th:text="${f.hasta60}"></td>
+                <td class="text-end cod" th:text="${f.hasta90}"></td>
+                <td class="text-end fw-bold cod" th:text="${f.total}"></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(radar.filas)}"><td colspan="8" class="vacio"><i class="bi bi-calendar2-check"></i>
+                No hay EPP por renovar en los próximos <span th:text="${horizonte}">90</span> días.</td></tr>
+            </tbody>
+        </table>
+    </div></div>
+    <div class="leyenda small mt-3">
+        <span><i class="punto bg-danger"></i> Ya vencido</span>
+        <span><i class="punto bg-warning"></i> Vence en 30 días</span>
+        <span><i class="punto" style="background:#9B7FD6"></i> En 31 a 60 días</span>
+        <span><i class="punto" style="background:var(--ept-accion)"></i> En 61 a 90 días</span>
+    </div>
+</section>
+</body>
+</html>
