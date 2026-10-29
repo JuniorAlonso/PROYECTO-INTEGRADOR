@@ -57,7 +57,14 @@ class DotacionYTrabajadorServiceTest {
         assertThat(dotacionService.estadoDotacion(trabajador).getFaltantes())
                 .extracting(i -> i.epp().getNombre()).containsExactly("Guantes de nitrilo");
 
+        // La matriz exige 2 pares de guantes: una entrega de 1 todavía no cubre (entrega parcial).
         entregaService.registrar(datos.formulario(trabajador, LocalDate.now(), datos.guantes), "sup-test");
+        assertThat(dotacionService.estadoDotacion(trabajador).isCompleta()).isFalse();
+
+        var completar = datos.formulario(trabajador, LocalDate.now(), datos.guantes);
+        completar.getItems().getFirst().setCantidad(2);
+        completar.getItems().getFirst().setJustificacion("Se completa la cantidad exigida por la matriz");
+        entregaService.registrar(completar, "sup-test");
         EstadoDotacion estado = dotacionService.estadoDotacion(trabajador);
         assertThat(estado.isCompleta()).isTrue();
         assertThat(estado.getPorcentaje()).isEqualTo(100);
@@ -74,7 +81,9 @@ class DotacionYTrabajadorServiceTest {
     @Test
     void calculoMasivoCoincideConElIndividual() {
         datos.trabajador("20000003", LocalDate.now());
-        entregaService.registrar(datos.formulario(trabajador, LocalDate.now(), datos.respirador, datos.guantes), "sup-test");
+        var form = datos.formulario(trabajador, LocalDate.now(), datos.respirador, datos.guantes);
+        form.getItems().get(1).setCantidad(2);   // la matriz exige 2 pares de guantes
+        entregaService.registrar(form, "sup-test");
 
         var todos = dotacionService.estadoDotacionTodos(null);
         assertThat(todos).hasSize(2);

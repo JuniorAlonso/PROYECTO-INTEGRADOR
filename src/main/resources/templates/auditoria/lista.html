@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Auditoría · EPPTrack</title></head>
+<body>
+<section>
+    <h1 class="h4 mb-1">Bitácora de auditoría</h1>
+    <p class="subtitulo">Cada operación queda encadenada con la huella SHA-256 de la anterior. Si alguien altera o borra
+        un registro directamente en la base de datos, la verificación lo detecta.</p>
+
+    <div class="alert" th:classappend="${verificacion.integra} ? 'alert-success' : 'alert-danger'" id="verificacion">
+        <strong th:if="${verificacion.integra}">Cadena íntegra.</strong>
+        <strong th:unless="${verificacion.integra}">Cadena alterada.</strong>
+        <span th:text="${verificacion.registros} + ' registros verificados.'"></span>
+        <span th:if="${verificacion.integra and verificacion.ultimaHuella != null}">
+            Última huella: <code th:text="${verificacion.ultimaHuella}"></code></span>
+        <span th:unless="${verificacion.integra}">
+            El primer registro que no coincide es el N.° <strong th:text="${verificacion.primerRegistroAlterado}"></strong>.</span>
+    </div>
+
+    <div class="card"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+        <thead class="table-light"><tr><th>N.°</th><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Detalle</th><th>Huella</th></tr></thead>
+        <tbody>
+        <tr th:each="r : ${registros}">
+            <td th:text="${r.idRegistro}"></td>
+            <td class="text-nowrap" th:text="${#temporals.format(r.fecha, 'dd/MM/yyyy HH:mm:ss')}"></td>
+            <td th:text="${r.usuario}"></td>
+            <td><span class="badge text-bg-light border" th:text="${r.accion}"></span></td>
+            <td class="small" th:text="${r.detalle}"></td>
+            <td><code class="small" th:text="${r.huellaCorta}"></code></td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(registros)}"><td colspan="6" class="text-muted">Aún no hay operaciones registradas.</td></tr>
+        </tbody>
+    </table></div></div>
+    <p class="small text-muted mt-2">Se muestran los 200 registros más recientes. La verificación recorre la cadena completa.</p>
+</section>
+</body>
+</html>

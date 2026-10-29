@@ -56,6 +56,8 @@
             <li class="nav-grupo" aria-hidden="true">Informes</li>
             <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/reportes')} ? active" th:href="@{/reportes}">
                 <i class="bi bi-file-earmark-text"></i> Reportes</a></li>
+            <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/auditoria')} ? active" th:href="@{/auditoria}">
+                <i class="bi bi-shield-check"></i> Auditoría</a></li>
         </ul>
       </div>
     </nav>

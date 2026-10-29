@@ -35,6 +35,10 @@ public class DetalleEntrega {
     @Column(length = 500)
     private String justificacionDuplicado;
 
+    /** Justificación obligatoria cuando se entrega un EPP que la matriz no exige para la actividad (RN-06). */
+    @Column(length = 500)
+    private String justificacionNoExigido;
+
     public DetalleEntrega() {}
 
     public DetalleEntrega(Epp epp, int cantidad, LocalDate fechaRenovacion) {
@@ -63,5 +67,7 @@ public class DetalleEntrega {
     public EstadoVigencia getEstadoVigencia() { return estadoVigencia; }
     public void setEstadoVigencia(EstadoVigencia estadoVigencia) { this.estadoVigencia = estadoVigencia; }
     public String getJustificacionDuplicado() { return justificacionDuplicado; }
+    public String getJustificacionNoExigido() { return justificacionNoExigido; }
+    public void setJustificacionNoExigido(String justificacionNoExigido) { this.justificacionNoExigido = justificacionNoExigido; }
     public void setJustificacionDuplicado(String justificacionDuplicado) { this.justificacionDuplicado = justificacionDuplicado; }
 }

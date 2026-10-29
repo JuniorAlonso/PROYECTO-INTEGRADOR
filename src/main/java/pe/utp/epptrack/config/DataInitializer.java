@@ -43,6 +43,7 @@ public class DataInitializer implements CommandLineRunner {
     private final MatrizAsignacionRepository matrizRepository;
     private final TrabajadorService trabajadorService;
     private final EntregaService entregaService;
+    private final pe.utp.epptrack.service.MatrizVersionService versionService;
     private final PasswordEncoder passwordEncoder;
 
     private final Map<String, Epp> epps = new HashMap<>();
@@ -53,7 +54,9 @@ public class DataInitializer implements CommandLineRunner {
                            ProcesoRepository procesoRepository, ActividadRepository actividadRepository,
                            CategoriaEppRepository categoriaRepository, EppRepository eppRepository,
                            MatrizAsignacionRepository matrizRepository, TrabajadorService trabajadorService,
-                           EntregaService entregaService, PasswordEncoder passwordEncoder) {
+                           EntregaService entregaService, PasswordEncoder passwordEncoder,
+                           pe.utp.epptrack.service.MatrizVersionService versionService) {
+        this.versionService = versionService;
         this.rolRepository = rolRepository;
         this.usuarioRepository = usuarioRepository;
         this.sedeRepository = sedeRepository;
@@ -78,6 +81,9 @@ public class DataInitializer implements CommandLineRunner {
         cargarUsuarios();
         cargarCatalogo();
         cargarMatriz();
+        // Las entregas de demostración quedan asociadas a una versión publicada de la matriz (RF-21).
+        versionService.publicar("demo-1", "Matriz de demostración con datos ficticios; no es la Matriz v6 real de CASURSA",
+                "sistema");
         cargarTrabajadoresYEntregas();
     }
 

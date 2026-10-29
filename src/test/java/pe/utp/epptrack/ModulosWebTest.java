@@ -46,7 +46,8 @@ class ModulosWebTest {
     void formularioMuestraLosEppDeLaMatrizPreseleccionados() throws Exception {
         String html = mvc.perform(get("/entregas/nueva").param("dni", "20000001"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        assertThat(html).contains("Pérez, Juan").contains("Respirador").contains("Guantes de nitrilo").contains("Otro EPP");
+        assertThat(html).contains("Pérez, Juan").contains("Respirador").contains("Guantes de nitrilo").contains("No exigido")
+                .contains("Evaluación automática de dotación");
     }
 
     @Test

@@ -14,6 +14,7 @@ import pe.utp.epptrack.repository.CategoriaEppRepository;
 import pe.utp.epptrack.repository.SedeRepository;
 import pe.utp.epptrack.service.ReglaNegocioException;
 import pe.utp.epptrack.service.ReporteService;
+import pe.utp.epptrack.service.ExcelReporteService;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -28,9 +29,11 @@ public class ReporteController {
     private final ReporteService reporteService;
     private final SedeRepository sedeRepository;
     private final CategoriaEppRepository categoriaRepository;
+    private final ExcelReporteService excelService;
 
     public ReporteController(ReporteService reporteService, SedeRepository sedeRepository,
-                             CategoriaEppRepository categoriaRepository) {
+                             CategoriaEppRepository categoriaRepository, ExcelReporteService excelService) {
+        this.excelService = excelService;
         this.reporteService = reporteService;
         this.sedeRepository = sedeRepository;
         this.categoriaRepository = categoriaRepository;
@@ -75,6 +78,23 @@ public class ReporteController {
                         .filename(reporte.codigo() + "-" + LocalDate.now() + ".csv").build().toString())
                 .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
                 .body(reporte.aCsv(auth.getName(), ahora).getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** Excel nativo con Apache POI (RF-12). */
+    @GetMapping(value = "/{codigo}.xlsx")
+    public ResponseEntity<byte[]> xlsx(@PathVariable String codigo, Filtros f, Authentication auth) {
+        Reporte reporte;
+        try {
+            reporte = generar(codigo, f);
+        } catch (ReglaNegocioException e) {
+            return ResponseEntity.badRequest().build();
+        }
+        String ahora = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(reporte.codigo() + "-" + LocalDate.now() + ".xlsx").build().toString())
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(excelService.exportar(reporte, auth.getName(), ahora));
     }
 
     private Reporte generar(String codigo, Filtros f) {

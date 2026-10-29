@@ -31,6 +31,9 @@ public class EntregaService {
     private final PeriodoLaboralRepository periodoRepository;
     private final VigenciaService vigenciaService;
     private final InventarioService inventarioService;
+    private final DotacionService dotacionService;
+    private final MatrizVersionService versionService;
+    private final AuditoriaService auditoriaService;
 
     public EntregaService(EntregaRepository entregaRepository,
                           DetalleEntregaRepository detalleRepository,
@@ -41,8 +44,14 @@ public class EntregaService {
                           UsuarioRepository usuarioRepository,
                           PeriodoLaboralRepository periodoRepository,
                           VigenciaService vigenciaService,
-                          InventarioService inventarioService) {
+                          InventarioService inventarioService,
+                          DotacionService dotacionService,
+                          MatrizVersionService versionService,
+                          AuditoriaService auditoriaService) {
         this.inventarioService = inventarioService;
+        this.dotacionService = dotacionService;
+        this.versionService = versionService;
+        this.auditoriaService = auditoriaService;
         this.entregaRepository = entregaRepository;
         this.detalleRepository = detalleRepository;
         this.historialRepository = historialRepository;
@@ -71,6 +80,26 @@ public class EntregaService {
         Map<Integer, DetalleEntrega> enUso = enUsoPorEpp(form.getIdTrabajador());
         return form.getSeleccionados().stream()
                 .filter(i -> enUso.containsKey(i.getIdEpp()))
+                .filter(i -> i.getJustificacion() == null || i.getJustificacion().isBlank())
+                .map(ItemEntregaForm::getIdEpp)
+                .toList();
+    }
+
+    /**
+     * Ids de los EPP seleccionados que la matriz NO exige para las actividades del trabajador y no traen
+     * justificación (RN-06). Entregar algo no exigido no está prohibido, pero debe quedar el porqué: así se
+     * detectan asignaciones equivocadas antes de confirmarlas. Un EPP desactivado se ignora aquí (se rechaza luego).
+     */
+    @Transactional(readOnly = true)
+    public List<Integer> noExigidosSinJustificar(EntregaForm form) {
+        if (form.getIdTrabajador() == null) return List.of();
+        Trabajador t = trabajadorRepository.findById(form.getIdTrabajador()).orElse(null);
+        if (t == null) return List.of();
+        java.util.Set<Integer> exigidos = dotacionService.estadoDotacion(t).items().stream()
+                .map(i -> i.epp().getIdEpp()).collect(Collectors.toSet());
+        return form.getSeleccionados().stream()
+                .filter(i -> !exigidos.contains(i.getIdEpp()))
+                .filter(i -> eppRepository.findById(i.getIdEpp()).map(Epp::isActivo).orElse(false))
                 .filter(i -> i.getJustificacion() == null || i.getJustificacion().isBlank())
                 .map(ItemEntregaForm::getIdEpp)
                 .toList();
@@ -116,6 +145,12 @@ public class EntregaService {
         if (!trabajador.getEstado().isLaborando()) {
             throw new ReglaNegocioException("El trabajador está cesado; registre su reingreso antes de entregarle EPP.");
         }
+        if (!noExigidosSinJustificar(form).isEmpty()) {
+            throw new ReglaNegocioException("Hay EPP que la matriz no exige para la actividad del trabajador; "
+                    + "escriba la justificación de cada uno (RN-06).");
+        }
+        java.util.Set<Integer> exigidos = dotacionService.estadoDotacion(trabajador).items().stream()
+                .map(i -> i.epp().getIdEpp()).collect(Collectors.toSet());
         periodoRepository.findByTrabajadorIdTrabajadorAndFechaCeseIsNull(trabajador.getIdTrabajador()).stream()
                 .map(PeriodoLaboral::getFechaIngreso).min(java.time.LocalDate::compareTo)
                 .filter(ingreso -> form.getFechaEntrega().isBefore(ingreso)).ifPresent(ingreso -> {
@@ -131,7 +166,10 @@ public class EntregaService {
         entrega.setUsuario(responsable);
         entrega.setFechaEntrega(form.getFechaEntrega());
         entrega.setMotivo(form.getMotivo());
+        entrega.setVersionMatriz(versionService.etiquetaParaEntrega());
         entregaRepository.save(entrega);
+        StringBuilder resumen = new StringBuilder("DNI " + trabajador.getDni() + "; motivo " + form.getMotivo()
+                + "; fecha " + form.getFechaEntrega() + "; matriz " + entrega.getVersionMatriz() + "; EPP:");
 
         for (ItemEntregaForm item : seleccionados) {
             Epp epp = eppRepository.findById(item.getIdEpp())
@@ -155,6 +193,14 @@ public class EntregaService {
             if (duplicado) {
                 detalle.setJustificacionDuplicado(item.getJustificacion().trim());
             }
+            boolean noExigido = !exigidos.contains(epp.getIdEpp());
+            if (noExigido) {
+                detalle.setJustificacionNoExigido(item.getJustificacion().trim());
+            }
+            resumen.append(" ").append(epp.getNombre()).append(" x").append(item.getCantidad())
+                    .append(duplicado ? " [duplicado justificado: " + item.getJustificacion().trim() + "]" : "")
+                    .append(noExigido ? " [no exigido por la matriz: " + item.getJustificacion().trim() + "]" : "")
+                    .append(";");
             entrega.agregarDetalle(detalle);
             detalleRepository.save(detalle);
             List<String> codigos = inventarioService.asignar(detalle, trabajador, nombreUsuario);
@@ -164,8 +210,12 @@ public class EntregaService {
             }
             historialRepository.save(new HistorialEpp(trabajador, detalle,
                     duplicado ? HistorialEpp.ENTREGA_DUPLICADA : HistorialEpp.ENTREGA,
-                    duplicado ? "Justificación: " + detalle.getJustificacionDuplicado() : form.getMotivo().getEtiqueta()));
+                    duplicado ? "Justificación: " + detalle.getJustificacionDuplicado()
+                            : noExigido ? "No exigido por la matriz. Justificación: " + detalle.getJustificacionNoExigido()
+                            : form.getMotivo().getEtiqueta()));
         }
+        auditoriaService.registrar(nombreUsuario, "ENTREGA_REGISTRADA", "entrega", entrega.getIdEntrega(),
+                resumen.toString());
         return entrega;
     }
 
@@ -192,6 +242,9 @@ public class EntregaService {
         Trabajador trabajador = detalle.getEntrega().getTrabajador();
         historialRepository.save(new HistorialEpp(trabajador, detalle, HistorialEpp.ANULACION, motivo.trim()));
         inventarioService.liberar(detalle, nombreUsuario);
+        auditoriaService.registrar(nombreUsuario, "ENTREGA_ANULADA", "detalle_entrega", idDetalle,
+                "DNI " + trabajador.getDni() + "; " + detalle.getEpp().getNombre() + "; valor anterior: " + valorAnterior
+                        + "; motivo: " + motivo.trim());
         if (estabaVigente) {
             restaurarReemplazado(trabajador, detalle);
         }

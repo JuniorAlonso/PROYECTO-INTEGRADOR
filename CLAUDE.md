@@ -35,7 +35,7 @@ Spring Security · MySQL 8 · Maven (usar el wrapper `mvnw` / `mvnw.cmd`). Boots
 ```bash
 ./mvnw spring-boot:run                                   # MySQL localhost:3306, base "epptrack" (se crea sola)
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=h2     # sin MySQL, base en memoria
-./mvnw test                                              # 19 pruebas, usan H2 (perfil "test")
+./mvnw test                                              # 82 pruebas, usan H2 (perfil "test")
 ```
 Credenciales MySQL por variables de entorno `DB_USER` (default `root`) y `DB_PASSWORD` (default vacío).
 Con base vacía se cargan datos simulados (`config/DataInitializer.java`). Usuarios demo: ver README.

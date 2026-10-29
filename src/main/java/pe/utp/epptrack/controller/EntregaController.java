@@ -16,6 +16,7 @@ import pe.utp.epptrack.model.Trabajador;
 import pe.utp.epptrack.repository.EppRepository;
 import pe.utp.epptrack.service.DotacionService;
 import pe.utp.epptrack.service.EntregaService;
+import pe.utp.epptrack.service.MotorDotacionService;
 import pe.utp.epptrack.service.ReglaNegocioException;
 import pe.utp.epptrack.service.TrabajadorService;
 
@@ -36,9 +37,12 @@ public class EntregaController {
     private final DotacionService dotacionService;
     private final EntregaService entregaService;
     private final EppRepository eppRepository;
+    private final MotorDotacionService motorDotacionService;
 
     public EntregaController(TrabajadorService trabajadorService, DotacionService dotacionService,
-                             EntregaService entregaService, EppRepository eppRepository) {
+                             EntregaService entregaService, EppRepository eppRepository,
+                             MotorDotacionService motorDotacionService) {
+        this.motorDotacionService = motorDotacionService;
         this.trabajadorService = trabajadorService;
         this.dotacionService = dotacionService;
         this.entregaService = entregaService;
@@ -96,10 +100,20 @@ public class EntregaController {
             return "redirect:/entregas/nueva?dni=" + trabajador.getDni();
         }
         List<Integer> duplicados = entregaService.duplicadosSinJustificar(form);
+        List<Integer> noExigidos = entregaService.noExigidosSinJustificar(form);
+        List<Integer> observados = new ArrayList<>(duplicados);
+        noExigidos.stream().filter(id -> !observados.contains(id)).forEach(observados::add);
         try {
-            if (!duplicados.isEmpty()) {
-                model.addAttribute("error", "El trabajador ya tiene vigentes los EPP marcados en amarillo. "
-                        + "Escriba la justificación para entregarlos de nuevo (RF-07).");
+            if (!observados.isEmpty()) {
+                List<String> razones = new ArrayList<>();
+                if (!duplicados.isEmpty()) {
+                    razones.add("ya tiene vigentes algunos EPP marcados (RF-07)");
+                }
+                if (!noExigidos.isEmpty()) {
+                    razones.add("algunos EPP marcados no los exige la matriz para su actividad (RN-06)");
+                }
+                model.addAttribute("error", "No se registró: " + String.join(" y ", razones)
+                        + ". Escriba la justificación en las filas resaltadas o desmárquelas.");
             } else {
                 var entrega = entregaService.registrar(form, auth.getName());
                 String codigos = entrega.getCodigosAsignados().isEmpty() ? ""
@@ -115,7 +129,7 @@ public class EntregaController {
             model.addAttribute("error", e.getMessage());
         }
         model.addAttribute("dni", trabajador.getDni());
-        return formulario(model, trabajador, dotacionService.estadoDotacion(trabajador), form, Set.copyOf(duplicados));
+        return formulario(model, trabajador, dotacionService.estadoDotacion(trabajador), form, Set.copyOf(observados));
     }
 
     @PostMapping("/detalle/{id}/anular")
@@ -154,6 +168,7 @@ public class EntregaController {
         model.addAttribute("dotacion", dotacion);
         model.addAttribute("filas", filas);
         model.addAttribute("duplicados", duplicados);
+        model.addAttribute("evaluacion", motorDotacionService.evaluar(trabajador));
         model.addAttribute("motivos", MotivoEntrega.values());
         return "entregas/nueva";
     }

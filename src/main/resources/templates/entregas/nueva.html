@@ -44,6 +44,8 @@
             <a th:href="@{/historial(dni=${trabajador.dni})}">historial</a> antes de entregarle EPP.
         </div>
 
+        <div th:replace="~{fragments/evaluacion :: tarjeta(${evaluacion})}"></div>
+
         <form th:if="${trabajador.estado.laborando}" method="post" th:action="@{/entregas}" th:object="${form}" data-seleccion>
             <input type="hidden" th:field="*{idTrabajador}">
             <div class="row g-3 mb-3">
@@ -73,7 +75,7 @@
                         <td>
                             <span th:text="${f.epp.nombre}"></span>
                             <span th:if="${f.obligatorio}" class="badge text-bg-primary">Obligatorio</span>
-                            <span th:if="${!f.enMatriz}" class="badge text-bg-light border">Otro EPP</span>
+                            <span th:if="${!f.enMatriz}" class="badge text-bg-light border" title="La matriz no lo exige para la actividad: requiere justificación (RN-06)">No exigido</span>
                         </td>
                         <td th:text="${f.epp.categoria.nombre}"></td>
                         <td><span th:text="${f.epp.vidaUtilDias}"></span> días</td>
@@ -88,9 +90,9 @@
                                       th:text="${f.enUso.estadoVigencia.etiqueta}"></span>
                                 hasta <span th:text="${#temporals.format(f.enUso.fechaRenovacion, 'dd/MM/yyyy')}"></span>
                             </span>
-                            <div th:if="${f.enUso != null}" class="mt-1">
+                            <div th:if="${f.enUso != null or !f.enMatriz}" class="mt-1">
                                 <input class="form-control form-control-sm" th:field="*{items[__${i.index}__].justificacion}"
-                                       placeholder="Justificación si se entrega de nuevo"
+                                       th:placeholder="${f.enUso != null} ? 'Justificación si se entrega de nuevo' : 'Justificación: la matriz no lo exige'"
                                        th:classappend="${duplicados.contains(f.epp.idEpp)} ? 'is-invalid'">
                             </div>
                         </td>

@@ -6,6 +6,57 @@
 <section>
     <h1 class="h4 mb-1">Matriz de asignación de EPP</h1>
     <p class="subtitulo">Define qué EPP debe tener quien realiza cada actividad. El sistema usa esta tabla para saber qué falta.</p>
+    <div class="card mb-3" id="version-matriz"><div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between gap-3">
+            <div>
+                <h2 class="h6 mb-1"><i class="bi bi-tag"></i> Versión de la matriz</h2>
+                <div th:if="${estadoMatriz.vigente != null}" class="small">
+                    Vigente: <strong th:text="${estadoMatriz.vigente.codigo}"></strong>
+                    · publicada el <span th:text="${#temporals.format(estadoMatriz.vigente.fechaPublicacion, 'dd/MM/yyyy HH:mm')}"></span>
+                    por <span th:text="${estadoMatriz.vigente.publicadaPor}"></span>
+                    · <span th:text="${estadoMatriz.vigente.totalReglas}"></span> reglas
+                    · huella <code th:text="${estadoMatriz.vigente.huellaCorta}"></code>
+                </div>
+                <div th:if="${estadoMatriz.vigente == null}" class="small text-muted">Aún no hay una versión publicada.</div>
+                <div th:if="${estadoMatriz.cambiosSinPublicar}" class="small text-warning-emphasis mt-1">
+                    <i class="bi bi-exclamation-triangle"></i> La matriz de trabajo tiene cambios que no se han publicado.
+                    Las entregas registran la versión vigente con la nota "con cambios no publicados".
+                </div>
+            </div>
+            <form sec:authorize="hasRole('ADMIN')" class="d-flex flex-wrap gap-2 align-items-end" method="post" th:action="@{/matriz/publicar}">
+                <div><label class="form-label small mb-0">Código</label>
+                    <input class="form-control form-control-sm" name="codigo" maxlength="20" placeholder="v7" required style="width:6rem"></div>
+                <div><label class="form-label small mb-0">Descripción del cambio</label>
+                    <input class="form-control form-control-sm" name="descripcion" maxlength="300" placeholder="Aprobada por SST el …"></div>
+                <button class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> Publicar versión</button>
+            </form>
+        </div>
+        <div th:if="${impacto != null}" class="alert alert-info small mt-3 mb-0" id="impacto">
+            <strong th:text="'Impacto de ' + ${impacto.version.codigo}"></strong>
+            <span th:if="${impacto.versionAnterior != null}" th:text="' frente a ' + ${impacto.versionAnterior}"></span>:
+            <span th:text="${#lists.size(impacto.agregadas)} + ' reglas agregadas, ' + ${#lists.size(impacto.retiradas)} + ' retiradas, '
+                  + ${#lists.size(impacto.modificadas)} + ' modificadas; ' + ${#lists.size(impacto.trabajadoresAfectados)} + ' trabajadores activos afectados.'"></span>
+            <ul class="mb-0 mt-1">
+                <li th:each="x : ${impacto.agregadas}" th:text="'Agregada: ' + ${x}"></li>
+                <li th:each="x : ${impacto.retiradas}" th:text="'Retirada: ' + ${x}"></li>
+                <li th:each="x : ${impacto.modificadas}" th:text="'Modificada: ' + ${x}"></li>
+                <li th:each="t : ${impacto.trabajadoresAfectados}"><a th:href="@{/historial(dni=${t.dni})}" th:text="'Revisar dotación de ' + ${t.nombreCompleto}"></a></li>
+            </ul>
+        </div>
+        <details th:unless="${#lists.isEmpty(versiones)}" class="small mt-2">
+            <summary>Historial de versiones (<span th:text="${#lists.size(versiones)}"></span>)</summary>
+            <ul class="mb-0">
+                <li th:each="v : ${versiones}">
+                    <strong th:text="${v.codigo}"></strong> ·
+                    <span th:text="${#temporals.format(v.fechaPublicacion, 'dd/MM/yyyy HH:mm')}"></span> ·
+                    <span th:text="${v.totalReglas}"></span> reglas · <code th:text="${v.huellaCorta}"></code>
+                    <span th:if="${v.descripcion != null}" th:text="' · ' + ${v.descripcion}"></span>
+                    <span th:if="${v.vigente}" class="badge text-bg-success">vigente</span>
+                </li>
+            </ul>
+        </details>
+    </div></div>
+
     <div class="row g-3">
         <div class="col-lg-4">
             <div class="buscador mb-2"><i class="bi bi-search"></i><input type="search" class="form-control" data-filtrar="[data-actividad]" placeholder="Buscar actividad…" aria-label="Buscar actividad"></div>

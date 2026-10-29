@@ -40,6 +40,10 @@ public class Entrega {
     @Column(nullable = false)
     private LocalDateTime fechaRegistro = LocalDateTime.now();
 
+    /** Versión de la Matriz de EPP vigente al registrar la entrega (RF-21): con qué reglas se decidió. */
+    @Column(length = 60)
+    private String versionMatriz;
+
     @OneToMany(mappedBy = "entrega", cascade = CascadeType.PERSIST)
     private List<DetalleEntrega> detalles = new ArrayList<>();
 
@@ -74,5 +78,7 @@ public class Entrega {
     public LocalDateTime getFechaRegistro() { return fechaRegistro; }
     public void setFechaRegistro(LocalDateTime fechaRegistro) { this.fechaRegistro = fechaRegistro; }
     public List<DetalleEntrega> getDetalles() { return detalles; }
+    public String getVersionMatriz() { return versionMatriz; }
+    public void setVersionMatriz(String versionMatriz) { this.versionMatriz = versionMatriz; }
     public void setDetalles(List<DetalleEntrega> detalles) { this.detalles = detalles; }
 }

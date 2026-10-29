@@ -101,7 +101,7 @@ class EntregaServiceTest {
 
     @Test
     void anularNoBorraYDejaCorreccion() {   // RNF-03, RN-05, RF-13
-        Entrega entrega = entregaService.registrar(datos.formulario(trabajador, LocalDate.now(), datos.casco), "sup-test");
+        Entrega entrega = entregaService.registrar(datos.formulario(trabajador, LocalDate.now(), datos.respirador), "sup-test");
         Integer idDetalle = entrega.getDetalles().getFirst().getIdDetalle();
 
         entregaService.anularDetalle(idDetalle, "Se registró al trabajador equivocado", "sup-test");

@@ -9,7 +9,10 @@ import pe.utp.epptrack.model.Actividad;
 import pe.utp.epptrack.model.Epp;
 import pe.utp.epptrack.model.MatrizAsignacion;
 import pe.utp.epptrack.model.Proceso;
+import pe.utp.epptrack.service.MatrizVersionService;
 import pe.utp.epptrack.service.RecursoNoEncontradoException;
+import pe.utp.epptrack.service.ReglaNegocioException;
+import org.springframework.security.core.Authentication;
 import pe.utp.epptrack.repository.ActividadRepository;
 import pe.utp.epptrack.repository.EppRepository;
 import pe.utp.epptrack.repository.MatrizAsignacionRepository;
@@ -29,9 +32,12 @@ public class MatrizController {
     private final ActividadRepository actividadRepository;
     private final ProcesoRepository procesoRepository;
     private final EppRepository eppRepository;
+    private final MatrizVersionService versionService;
 
     public MatrizController(MatrizAsignacionRepository matrizRepository, ActividadRepository actividadRepository,
-                            ProcesoRepository procesoRepository, EppRepository eppRepository) {
+                            ProcesoRepository procesoRepository, EppRepository eppRepository,
+                            MatrizVersionService versionService) {
+        this.versionService = versionService;
         this.matrizRepository = matrizRepository;
         this.actividadRepository = actividadRepository;
         this.procesoRepository = procesoRepository;
@@ -55,6 +61,8 @@ public class MatrizController {
                 : matrizRepository.findByActividadIdActividadOrderByEppNombreAsc(seleccionada.getIdActividad()));
         model.addAttribute("epps", eppRepository.findByEstadoOrderByCategoriaNombreAscNombreAsc(Epp.ACTIVO));
         model.addAttribute("procesos", procesoRepository.findAllByOrderByNombreAsc());
+        model.addAttribute("estadoMatriz", versionService.estado());
+        model.addAttribute("versiones", versionService.historial());
         return "matriz/ver";
     }
 
@@ -76,6 +84,21 @@ public class MatrizController {
             flash.addFlashAttribute("exito", epp.getNombre() + " agregado a " + actividad.getNombre() + ".");
         }
         return "redirect:/matriz?actividad=" + idActividad;
+    }
+
+    /** Publica la matriz de trabajo como versión oficial y muestra a quién afecta el cambio (RF-21). */
+    @PostMapping("/publicar")
+    public String publicar(@RequestParam String codigo, @RequestParam(required = false) String descripcion,
+                           Authentication auth, RedirectAttributes flash) {
+        try {
+            MatrizVersionService.Impacto impacto = versionService.publicar(codigo, descripcion, auth.getName());
+            flash.addFlashAttribute("impacto", impacto);
+            flash.addFlashAttribute("exito", "Versión " + impacto.version().getCodigo() + " publicada con "
+                    + impacto.version().getTotalReglas() + " reglas.");
+        } catch (ReglaNegocioException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/matriz";
     }
 
     @PostMapping("/{id}/quitar")

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import pe.utp.epptrack.model.Trabajador;
 import pe.utp.epptrack.repository.*;
 import pe.utp.epptrack.service.DotacionService;
+import pe.utp.epptrack.service.MotorDotacionService;
 import pe.utp.epptrack.service.TrabajadorService;
 
 import java.util.List;
@@ -25,12 +26,15 @@ public class HistorialController {
     private final CorreccionEntregaRepository correccionRepository;
     private final SedeRepository sedeRepository;
     private final ActividadRepository actividadRepository;
+    private final MotorDotacionService motorDotacionService;
 
     public HistorialController(TrabajadorService trabajadorService, DotacionService dotacionService,
                                PeriodoLaboralRepository periodoRepository, EntregaRepository entregaRepository,
                                HistorialEppRepository historialRepository,
                                CorreccionEntregaRepository correccionRepository,
-                               SedeRepository sedeRepository, ActividadRepository actividadRepository) {
+                               SedeRepository sedeRepository, ActividadRepository actividadRepository,
+                               MotorDotacionService motorDotacionService) {
+        this.motorDotacionService = motorDotacionService;
         this.trabajadorService = trabajadorService;
         this.dotacionService = dotacionService;
         this.periodoRepository = periodoRepository;
@@ -64,6 +68,7 @@ public class HistorialController {
         Integer id = t.getIdTrabajador();
         model.addAttribute("trabajador", t);
         model.addAttribute("dotacion", dotacionService.estadoDotacion(t));
+        model.addAttribute("evaluacion", motorDotacionService.evaluar(t));
         model.addAttribute("periodos", periodoRepository.findByTrabajadorIdTrabajadorOrderByFechaIngresoDesc(id));
         model.addAttribute("entregas", entregaRepository.findByTrabajadorIdTrabajadorOrderByFechaEntregaDescIdEntregaDesc(id));
         model.addAttribute("bitacora", historialRepository.findByTrabajadorIdTrabajadorOrderByFechaRegistroDescIdHistorialDesc(id));

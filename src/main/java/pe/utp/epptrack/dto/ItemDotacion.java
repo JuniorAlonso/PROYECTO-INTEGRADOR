@@ -10,5 +10,6 @@ import pe.utp.epptrack.model.Epp;
  */
 public record ItemDotacion(Epp epp, int cantidadRequerida, boolean obligatorio, DetalleEntrega enUso) {
 
-    public boolean isCubierto() { return enUso != null; }
+    /** Cubierto solo si la entrega vigente alcanza la cantidad que exige la matriz (una entrega parcial no cubre). */
+    public boolean isCubierto() { return enUso != null && enUso.getCantidad() >= cantidadRequerida; }
 }

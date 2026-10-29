@@ -18,12 +18,15 @@ public class TrabajadorService {
     private final AsignacionActividadRepository asignacionRepository;
     private final ActividadRepository actividadRepository;
     private final SedeRepository sedeRepository;
+    private final AuditoriaService auditoriaService;
 
     public TrabajadorService(TrabajadorRepository trabajadorRepository,
                              PeriodoLaboralRepository periodoRepository,
                              AsignacionActividadRepository asignacionRepository,
                              ActividadRepository actividadRepository,
-                             SedeRepository sedeRepository) {
+                             SedeRepository sedeRepository,
+                             AuditoriaService auditoriaService) {
+        this.auditoriaService = auditoriaService;
         this.trabajadorRepository = trabajadorRepository;
         this.periodoRepository = periodoRepository;
         this.asignacionRepository = asignacionRepository;
@@ -77,6 +80,9 @@ public class TrabajadorService {
         Trabajador guardado = trabajadorRepository.save(trabajador);
         periodoRepository.save(new PeriodoLaboral(guardado, campana.trim(), fechaIngreso, null));
         asignarActividad(guardado, idActividad, fechaIngreso);
+        auditoriaService.registrar(null, "TRABAJADOR_REGISTRADO", "trabajador", guardado.getIdTrabajador(),
+                "DNI " + guardado.getDni() + "; campaña " + campana.trim() + "; ingreso " + fechaIngreso
+                        + "; actividad " + idActividad);
         return guardado;
     }
 
@@ -121,6 +127,7 @@ public class TrabajadorService {
         periodoRepository.findByTrabajadorIdTrabajadorAndFechaCeseIsNull(id).forEach(p -> p.setFechaCese(fecha));
         asignacionRepository.findByTrabajadorIdTrabajadorAndFechaFinIsNull(id).forEach(a -> a.setFechaFin(fecha));
         trabajador.setEstado(EstadoTrabajador.CESADO);
+        auditoriaService.registrar(null, "CESE", "trabajador", id, "DNI " + trabajador.getDni() + "; cese " + fecha);
     }
 
     /** Reincorporación en una nueva campaña: mismo trabajador, nuevo periodo, historial intacto (RN-04). */
@@ -148,6 +155,8 @@ public class TrabajadorService {
         }
         periodoRepository.save(new PeriodoLaboral(trabajador, campana.trim(), fechaIngreso, null));
         trabajador.setEstado(EstadoTrabajador.REINCORPORADO);
+        auditoriaService.registrar(null, "REINGRESO", "trabajador", id, "DNI " + trabajador.getDni()
+                + "; campaña " + campana.trim() + "; reingreso " + fechaIngreso + "; mismo registro, historial conservado (RN-04)");
         asignarActividad(trabajador, idActividad, fechaIngreso);
     }
 

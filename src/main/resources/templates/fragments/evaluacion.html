@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Tarjeta del motor de dotación: resultado, alertas, verificación por EPP y dotación neta (RF-22, RF-24). -->
+<div th:fragment="tarjeta(ev)" class="card mb-3" id="evaluacion-dotacion">
+    <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+            <div>
+                <h2 class="h6 mb-1"><i class="bi bi-cpu"></i> Evaluación automática de dotación</h2>
+                <div class="small text-muted">
+                    Matriz aplicada: <strong th:text="${ev.versionMatriz}">v6</strong>
+                    · Actividad:
+                    <span th:if="${#lists.isEmpty(ev.actividades)}">sin actividad</span>
+                    <span th:each="a, it : ${ev.actividades}" th:text="${a.nombre} + (${it.last} ? '' : ', ')"></span>
+                </div>
+            </div>
+            <span class="badge fs-6" th:classappend="'text-bg-' + ${ev.resultado.color}"
+                  th:text="${ev.resultado.etiqueta}" data-resultado th:attr="data-resultado=${ev.resultado}">Cumple</span>
+        </div>
+
+        <div th:each="a : ${ev.alertas}" class="alert py-2 small mb-2" th:classappend="'alert-' + ${a.nivel.color}">
+            <strong th:text="${a.nivel}">ADVERTENCIA</strong> · <span th:text="${a.mensaje}"></span>
+        </div>
+
+        <div class="table-responsive" th:unless="${#lists.isEmpty(ev.verificaciones)}">
+            <table class="table table-sm align-middle mb-2">
+                <thead class="table-light">
+                <tr><th>EPP</th><th class="text-center">Exige</th><th class="text-center">Tiene</th><th>Estado</th><th>Por qué (regla aplicada)</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="v : ${ev.verificaciones}">
+                    <td><span th:text="${v.epp.nombre}"></span>
+                        <span th:if="${v.obligatorio}" class="badge text-bg-primary">Obligatorio</span></td>
+                    <td class="text-center" th:text="${v.requerida}"></td>
+                    <td class="text-center" th:text="${v.enPoder}"></td>
+                    <td><span class="badge" th:classappend="'text-bg-' + ${v.estado.color}" th:text="${v.estado.etiqueta}"></span></td>
+                    <td class="small"><span th:text="${v.explicacion}"></span>
+                        <div class="text-muted" th:text="${v.regla}"></div></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div th:unless="${#lists.isEmpty(ev.pendientes)}" class="small">
+            <strong>Dotación neta (lo que falta entregar):</strong>
+            <span th:each="p, it : ${ev.pendientes}"
+                  th:text="${p.epp.nombre} + ' ×' + ${p.cantidad} + ' (' + ${p.motivo} + ')' + (${it.last} ? '' : '; ')"></span>
+        </div>
+        <div th:if="${#lists.isEmpty(ev.pendientes) and !ev.bloqueada}" class="small text-success">
+            No hay nada pendiente: lo vigente no se vuelve a entregar.
+        </div>
+        <p class="small text-muted mt-2 mb-0">
+            El resultado indica conformidad con la matriz registrada. No autoriza por sí solo el inicio de labores:
+            los criterios de habilitación deben ser aprobados por SST.
+        </p>
+    </div>
+</div>
+</body>
+</html>

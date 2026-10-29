@@ -73,6 +73,19 @@ templates/        Vistas Thymeleaf (layout común en fragments/layout.html)
 - [x] **Asistente IA** (RF-16 a RF-20): botón flotante y panel de chat en todas las pantallas; responde solo con datos del sistema y según el rol — `AsistenteController`, `AsistenteService`, `ClaudeClient`
 - [x] Respaldo de la base (RNF-08), Docker y CI (ver abajo)
 
+### Motor de decisiones (APF3, rama `apf3-motor-decisiones`)
+- [x] **Evaluación automática de dotación** (`MotorDotacionService`): por cada EPP que exige la matriz indica si está
+  cubierto, incompleto (cantidad), vencido o nunca entregado, con la regla aplicada y el porqué; calcula la
+  **dotación neta** (solo lo que falta) y avisa en reincorporaciones que confirme lo que el trabajador conserva.
+  Se ve en Historial y en Registro de entregas.
+- [x] **EPP no exigido por la matriz** (RN-06): entregarlo exige justificación; queda guardada.
+- [x] **Versionado de la matriz** (RF-21): Matriz → Publicar versión; cada entrega guarda la versión aplicada y la
+  publicación muestra reglas agregadas/retiradas/modificadas y trabajadores afectados.
+- [x] **Posibles fichas duplicadas** (RF-27): mismo nombre (sin tildes) o mismos apellidos y fecha de nacimiento.
+- [x] **Bitácora de auditoría con huella SHA-256 encadenada** (RF-29): menú Auditoría; detecta alteraciones directas en la base.
+- [x] **Exportación a Excel nativo (.xlsx) con Apache POI** (RF-12), con la huella de auditoría al pie.
+- Pruebas: `MotorDecisionesTest` (PR-01 a PR-13) y `MotorWebTest` (PR-14 a PR-17). Total: 82 pruebas.
+
 ### Pendiente
 - [ ] Antes de un despliegue real: quitar los usuarios de demo y poner `app.datos-demo=false`.
 
