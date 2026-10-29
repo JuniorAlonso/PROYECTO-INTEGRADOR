@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Mantenimiento de EPP · EPPTrack</title></head>
+<body>
+<section>
+    <div class="mb-3 encabezado-pagina">
+        <h1 class="h4 mb-1"><i class="bi bi-tools"></i> Mantenimiento de EPP</h1>
+        <p class="subtitulo">EPP devueltos que el sistema determinó aptos para mantenimiento. Repararlos evita comprar unidades nuevas.</p>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3"><div class="card kpi" style="border-top-color: var(--ept-ambar)"><div class="card-body">
+            <div class="text-muted small">Aptos para mantenimiento</div><div class="valor" th:text="${#lists.size(aptos)}">0</div></div></div></div>
+        <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body">
+            <div class="text-muted small">En el taller</div><div class="valor" th:text="${#lists.size(enTaller)}">0</div></div></div></div>
+        <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body">
+            <div class="text-muted small">Ahorro potencial</div>
+            <div class="valor">S/ <span th:text="${#numbers.formatDecimal(ahorroPotencial, 1, 'COMMA', 2, 'POINT')}">0</span></div>
+            <div class="small text-muted">si se reparan los pendientes</div></div></div></div>
+        <div class="col-6 col-md-3"><div class="card kpi" style="border-top-color: var(--ept-verde, #1F8A5B)"><div class="card-body">
+            <div class="text-muted small">Ahorro logrado</div>
+            <div class="valor">S/ <span th:text="${#numbers.formatDecimal(ahorroLogrado, 1, 'COMMA', 2, 'POINT')}">0</span></div>
+            <div class="small text-muted">EPP reparados o reutilizados</div></div></div></div>
+    </div>
+
+    <div class="alert alert-light border small">
+        <strong>Cómo decide el sistema al recibir una devolución:</strong>
+        inservible → baja · descartable (vida útil ≤ <span th:text="${diasDescartable}">30</span> días) → baja ·
+        reparable con menos de <span th:text="${maxReparaciones}">3</span> reparaciones → <strong>apto para mantenimiento</strong> ·
+        en buen estado pero con vida útil cumplida → inspección en mantenimiento · en buen estado y vigente → vuelve al almacén.
+    </div>
+
+    <div class="card mb-3"><div class="card-body pb-0"><h2 class="h6">Aptos para mantenimiento</h2></div><div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>Código</th><th>EPP</th><th>Condición</th><th class="text-end">Reparaciones</th><th class="text-end">Costo nuevo</th><th></th></tr></thead>
+            <tbody>
+            <tr th:each="u : ${aptos}">
+                <td><a class="cod fw-semibold" th:href="@{/inventario/unidad/{id}(id=${u.idUnidad})}" th:text="${u.codigo}"></a></td>
+                <td th:text="${u.epp.nombre}"></td>
+                <td class="small" th:text="${u.condicion.etiqueta}"></td>
+                <td class="text-end cod" th:text="${u.vecesReparado}"></td>
+                <td class="text-end cod" th:text="${u.epp.costoUnitario != null} ? 'S/ ' + ${u.epp.costoUnitario} : '—'"></td>
+                <td class="text-end text-nowrap">
+                    <form class="d-inline" method="post" th:action="@{/inventario/unidad/{id}/enviar(id=${u.idUnidad})}">
+                        <button class="btn btn-sm btn-primary"><i class="bi bi-send"></i> Enviar a mantenimiento</button></form>
+                    <form class="d-inline" method="post" th:action="@{/inventario/unidad/{id}/cerrar(id=${u.idUnidad})}">
+                        <input type="hidden" name="reparado" value="false">
+                        <button class="btn btn-sm btn-outline-secondary">Dar de baja</button></form>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(aptos)}"><td colspan="6" class="vacio">No hay EPP pendientes de mantenimiento.</td></tr>
+            </tbody>
+        </table>
+    </div></div>
+
+    <div class="card"><div class="card-body pb-0"><h2 class="h6">En el taller</h2></div><div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>Código</th><th>EPP</th><th class="text-end">Reparaciones</th><th>Resultado</th></tr></thead>
+            <tbody>
+            <tr th:each="u : ${enTaller}">
+                <td><a class="cod fw-semibold" th:href="@{/inventario/unidad/{id}(id=${u.idUnidad})}" th:text="${u.codigo}"></a></td>
+                <td th:text="${u.epp.nombre}"></td>
+                <td class="text-end cod" th:text="${u.vecesReparado}"></td>
+                <td>
+                    <form class="d-flex gap-2" method="post" th:action="@{/inventario/unidad/{id}/cerrar(id=${u.idUnidad})}">
+                        <input class="form-control form-control-sm" name="observacion" maxlength="450" placeholder="Trabajo realizado" aria-label="Observación">
+                        <button class="btn btn-sm btn-success text-nowrap" name="reparado" value="true"><i class="bi bi-check2"></i> Reparado</button>
+                        <button class="btn btn-sm btn-outline-danger text-nowrap" name="reparado" value="false">No se pudo</button>
+                    </form>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(enTaller)}"><td colspan="4" class="vacio">No hay EPP en el taller.</td></tr>
+            </tbody>
+        </table>
+    </div></div>
+</section>
+</body>
+</html>

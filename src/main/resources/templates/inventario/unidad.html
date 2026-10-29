@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Trazabilidad de EPP · EPPTrack</title></head>
+<body>
+<section>
+    <a class="small" th:href="@{/inventario/unidades}"><i class="bi bi-arrow-left"></i> Códigos de EPP</a>
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 my-3 encabezado-pagina">
+        <div>
+            <h1 class="h4 mb-1"><span class="cod" th:text="${unidad.codigo}">EPP-001-0001</span></h1>
+            <p class="subtitulo mb-0" th:text="${unidad.epp.nombre + ' · ' + unidad.epp.categoria.nombre}"></p>
+        </div>
+        <div>
+            <span class="badge fs-6" th:classappend="'text-bg-' + ${unidad.estado.color}" th:text="${unidad.estado.etiqueta}"></span>
+            <a th:if="${unidad.estado.name() == 'ASIGNADO'}" class="btn btn-sm btn-primary ms-2"
+               th:href="@{/inventario/devoluciones(codigo=${unidad.codigo})}"><i class="bi bi-arrow-return-left"></i> Registrar devolución</a>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3"><div class="card card-body"><div class="small text-muted">Condición</div><strong th:text="${unidad.condicion.etiqueta}"></strong></div></div>
+        <div class="col-6 col-md-3"><div class="card card-body"><div class="small text-muted">En poder de</div>
+            <strong th:text="${unidad.trabajador != null} ? ${unidad.trabajador.nombreCompleto} : 'Almacén / taller'"></strong></div></div>
+        <div class="col-6 col-md-3"><div class="card card-body"><div class="small text-muted">Ingreso al almacén</div><strong th:text="${#temporals.format(unidad.fechaIngreso, 'dd/MM/yyyy')}"></strong></div></div>
+        <div class="col-6 col-md-3"><div class="card card-body"><div class="small text-muted">Reparaciones</div><strong th:text="${unidad.vecesReparado}"></strong></div></div>
+    </div>
+    <div class="card"><div class="card-body pb-0"><h2 class="h6">Movimientos</h2></div><div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>Fecha</th><th>Movimiento</th><th>Trabajador</th><th>Condición</th><th>Detalle</th><th>Usuario</th></tr></thead>
+            <tbody>
+            <tr th:each="m : ${movimientos}">
+                <td class="small" th:text="${#temporals.format(m.fecha, 'dd/MM/yyyy HH:mm')}"></td>
+                <td class="fw-semibold" th:text="${m.tipo.etiqueta}"></td>
+                <td th:text="${m.trabajador != null} ? ${m.trabajador.nombreCompleto} : '—'"></td>
+                <td class="small" th:text="${m.condicion != null} ? ${m.condicion.etiqueta} : '—'"></td>
+                <td class="small" th:text="${m.observacion}"></td>
+                <td class="small text-muted" th:text="${m.usuario}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div></div>
+</section>
+</body>
+</html>

@@ -28,7 +28,12 @@
                 <input class="form-control" type="number" min="1" th:field="*{vidaUtilDias}" th:errorclass="is-invalid">
                 <div class="invalid-feedback" th:errors="*{vidaUtilDias}"></div>
             </div>
-            <div class="col-12">
+            <div class="col-md-3">
+                <label class="form-label">Costo unitario (S/)</label>
+                <input class="form-control" type="number" min="0" step="0.01" th:field="*{costoUnitario}" th:errorclass="is-invalid">
+                <div class="invalid-feedback" th:errors="*{costoUnitario}"></div>
+            </div>
+            <div class="col-md-9">
                 <label class="form-label">Descripción</label>
                 <input class="form-control" th:field="*{descripcion}">
             </div>

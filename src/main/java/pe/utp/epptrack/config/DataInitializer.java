@@ -26,6 +26,7 @@ import java.util.Map;
  * Se desactiva con {@code app.datos-demo=false}.
  */
 @Component
+@org.springframework.core.annotation.Order(1)
 @ConditionalOnProperty(name = "app.datos-demo", havingValue = "true", matchIfMissing = true)
 public class DataInitializer implements CommandLineRunner {
 

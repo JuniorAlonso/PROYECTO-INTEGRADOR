@@ -30,6 +30,7 @@ public class EntregaService {
     private final UsuarioRepository usuarioRepository;
     private final PeriodoLaboralRepository periodoRepository;
     private final VigenciaService vigenciaService;
+    private final InventarioService inventarioService;
 
     public EntregaService(EntregaRepository entregaRepository,
                           DetalleEntregaRepository detalleRepository,
@@ -39,7 +40,9 @@ public class EntregaService {
                           EppRepository eppRepository,
                           UsuarioRepository usuarioRepository,
                           PeriodoLaboralRepository periodoRepository,
-                          VigenciaService vigenciaService) {
+                          VigenciaService vigenciaService,
+                          InventarioService inventarioService) {
+        this.inventarioService = inventarioService;
         this.entregaRepository = entregaRepository;
         this.detalleRepository = detalleRepository;
         this.historialRepository = historialRepository;
@@ -154,6 +157,11 @@ public class EntregaService {
             }
             entrega.agregarDetalle(detalle);
             detalleRepository.save(detalle);
+            List<String> codigos = inventarioService.asignar(detalle, trabajador, nombreUsuario);
+            entrega.getCodigosAsignados().addAll(codigos);
+            if (codigos.size() < detalle.getCantidad()) {
+                entrega.getSinStock().add(epp.getNombre() + " (" + (detalle.getCantidad() - codigos.size()) + ")");
+            }
             historialRepository.save(new HistorialEpp(trabajador, detalle,
                     duplicado ? HistorialEpp.ENTREGA_DUPLICADA : HistorialEpp.ENTREGA,
                     duplicado ? "Justificación: " + detalle.getJustificacionDuplicado() : form.getMotivo().getEtiqueta()));
@@ -183,6 +191,7 @@ public class EntregaService {
         detalle.setEstadoVigencia(EstadoVigencia.ANULADO);
         Trabajador trabajador = detalle.getEntrega().getTrabajador();
         historialRepository.save(new HistorialEpp(trabajador, detalle, HistorialEpp.ANULACION, motivo.trim()));
+        inventarioService.liberar(detalle, nombreUsuario);
         if (estabaVigente) {
             restaurarReemplazado(trabajador, detalle);
         }

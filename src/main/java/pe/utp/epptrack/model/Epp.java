@@ -38,6 +38,11 @@ public class Epp {
     @Column(nullable = false)
     private Integer vidaUtilDias;
 
+    /** Costo referencial de compra por unidad (S/), para estimar el ahorro al reparar en vez de comprar. */
+    @jakarta.validation.constraints.DecimalMin(value = "0.0", message = "El costo no puede ser negativo")
+    @Column(precision = 10, scale = 2)
+    private java.math.BigDecimal costoUnitario;
+
     @Column(nullable = false, length = 20)
     private String estado = ACTIVO;
 
@@ -62,6 +67,8 @@ public class Epp {
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
     public Integer getVidaUtilDias() { return vidaUtilDias; }
     public void setVidaUtilDias(Integer vidaUtilDias) { this.vidaUtilDias = vidaUtilDias; }
+    public java.math.BigDecimal getCostoUnitario() { return costoUnitario; }
+    public void setCostoUnitario(java.math.BigDecimal costoUnitario) { this.costoUnitario = costoUnitario; }
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
 }

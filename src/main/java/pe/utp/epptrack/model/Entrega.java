@@ -43,6 +43,17 @@ public class Entrega {
     @OneToMany(mappedBy = "entrega", cascade = CascadeType.PERSIST)
     private List<DetalleEntrega> detalles = new ArrayList<>();
 
+    /** Códigos de las unidades asignadas al registrar (no se persiste: se informa al usuario). */
+    @Transient
+    private final List<String> codigosAsignados = new ArrayList<>();
+
+    /** EPP que se entregaron sin unidad con código porque no había stock en el almacén. */
+    @Transient
+    private final List<String> sinStock = new ArrayList<>();
+
+    public List<String> getCodigosAsignados() { return codigosAsignados; }
+    public List<String> getSinStock() { return sinStock; }
+
     public void agregarDetalle(DetalleEntrega detalle) {
         detalle.setEntrega(this);
         detalles.add(detalle);

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Stock vs. personal · EPPTrack</title></head>
+<body>
+<section>
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3 encabezado-pagina">
+        <div>
+            <h1 class="h4 mb-1"><i class="bi bi-boxes"></i> Stock vs. personal</h1>
+            <p class="subtitulo">¿Alcanza el inventario para el personal que está laborando? Compara las unidades con código
+                del almacén con lo que exige la matriz y las renovaciones de los próximos <span th:text="${horizonte}">30</span> días.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary" th:href="@{/inventario/devoluciones}"><i class="bi bi-arrow-return-left"></i> Devoluciones</a>
+            <a class="btn btn-outline-secondary" th:href="@{/inventario/mantenimiento}"><i class="bi bi-tools"></i> Mantenimiento</a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-lg"><div class="card kpi"><div class="card-body">
+            <div class="text-muted small"><i class="bi bi-people"></i> Personal laborando</div>
+            <div class="valor" th:text="${resumen.trabajadores}">0</div>
+            <div class="small text-muted">trabajadores a dotar</div></div></div></div>
+        <div class="col-6 col-lg"><div class="card kpi" style="border-top-color: var(--ept-verde, #1F8A5B)"><div class="card-body">
+            <div class="text-muted small"><i class="bi bi-box-seam"></i> En almacén</div>
+            <div class="valor" th:text="${resumen.disponibles}">0</div>
+            <div class="small text-muted">unidades disponibles</div></div></div></div>
+        <div class="col-6 col-lg"><div class="card kpi"><div class="card-body">
+            <div class="text-muted small"><i class="bi bi-person-check"></i> Asignadas</div>
+            <div class="valor" th:text="${resumen.asignadas}">0</div>
+            <div class="small text-muted">en poder del personal</div></div></div></div>
+        <div class="col-6 col-lg"><div class="card kpi" style="border-top-color: var(--ept-ambar)"><div class="card-body">
+            <div class="text-muted small"><i class="bi bi-arrow-return-left"></i> Por devolver</div>
+            <div class="valor" th:text="${resumen.pendientesDevolucion}">0</div>
+            <div class="small text-muted">renovadas, vencidas o de cesados</div></div></div></div>
+        <div class="col-12 col-lg"><div class="card kpi" style="border-top-color: var(--ept-rojo)"><div class="card-body">
+            <div class="text-muted small"><i class="bi bi-cart"></i> Compra sugerida</div>
+            <div class="valor" th:text="${resumen.compra}">0</div>
+            <div class="small text-muted">unidades · S/ <span th:text="${#numbers.formatDecimal(resumen.costoCompra, 1, 'COMMA', 2, 'POINT')}">0.00</span></div></div></div></div>
+    </div>
+
+    <div class="card mb-3 no-imprimir"><div class="card-body">
+        <h2 class="h6">Ingresar unidades al almacén</h2>
+        <p class="small text-muted mb-2">Cada unidad recibe un código único (EPP-<em>tipo</em>-<em>número</em>) para seguirla en entregas, devoluciones y mantenimiento.</p>
+        <form class="row g-2 align-items-end" method="post" th:action="@{/inventario/ingreso}">
+            <div class="col-md-6">
+                <label class="form-label small" for="idEpp">EPP</label>
+                <select class="form-select" id="idEpp" name="idEpp" required>
+                    <option value="">Seleccione…</option>
+                    <option th:each="e : ${epps}" th:value="${e.idEpp}" th:text="${e.nombre + ' · ' + e.categoria.nombre}"></option>
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small" for="cantidad">Cantidad</label>
+                <input class="form-control" type="number" id="cantidad" name="cantidad" min="1" max="500" value="10" required>
+            </div>
+            <div class="col-6 col-md-4"><button class="btn btn-primary w-100"><i class="bi bi-upc"></i> Generar códigos e ingresar</button></div>
+        </form>
+    </div></div>
+
+    <div class="card"><div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>EPP</th>
+                <th class="text-end" title="Trabajadores laborando cuya actividad lo exige">Personal</th>
+                <th class="text-end" title="Unidades que exige la matriz a ese personal">Requeridas</th>
+                <th class="text-end" title="Unidades que el personal aún no tiene vigentes">Por entregar</th>
+                <th class="text-end" th:title="'Renovaciones en ' + ${horizonte} + ' días'">Renov.</th>
+                <th class="text-end">Almacén</th><th class="text-end">Asignadas</th>
+                <th class="text-end" title="Aptas para mantenimiento o en mantenimiento">Recuperables</th>
+                <th class="text-end">Comprar</th><th>Estado</th></tr></thead>
+            <tbody>
+            <tr th:each="f : ${resumen.filas}">
+                <td><a class="fw-semibold" th:href="@{/inventario/unidades(epp=${f.epp.idEpp})}" th:text="${f.epp.nombre}"></a>
+                    <div class="text-muted small" th:text="${f.epp.categoria.nombre}"></div></td>
+                <td class="text-end cod" th:text="${f.trabajadores}"></td>
+                <td class="text-end cod" th:text="${f.requeridas}"></td>
+                <td class="text-end cod" th:text="${f.porEntregar}"></td>
+                <td class="text-end cod" th:text="${f.renovaciones}"></td>
+                <td class="text-end cod fw-semibold" th:text="${f.disponibles}"></td>
+                <td class="text-end cod" th:text="${f.asignadas}"></td>
+                <td class="text-end cod" th:text="${f.recuperables}"></td>
+                <td class="text-end cod fw-bold" th:text="${f.compra}"></td>
+                <td><span th:if="${f.suficiente}" class="badge text-bg-success">Alcanza</span>
+                    <span th:unless="${f.suficiente}" class="badge text-bg-danger">Falta stock</span></td>
+            </tr>
+            </tbody>
+        </table>
+    </div></div>
+    <p class="small text-muted mt-2">Comprar = (por entregar + renovaciones) − almacén − recuperables por mantenimiento.
+        Reparar antes de comprar reduce el gasto.</p>
+</section>
+</body>
+</html>

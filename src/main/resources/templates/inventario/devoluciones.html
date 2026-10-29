@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Devoluciones de EPP · EPPTrack</title></head>
+<body>
+<section>
+    <div class="mb-3 encabezado-pagina">
+        <h1 class="h4 mb-1"><i class="bi bi-arrow-return-left"></i> Devoluciones de EPP</h1>
+        <p class="subtitulo">Registra el código del EPP que devuelve el trabajador y su condición. El sistema decide si vuelve
+            al almacén, va a mantenimiento o se da de baja.</p>
+    </div>
+
+    <div class="card card-body mb-3">
+        <form class="row g-2 align-items-end" method="post" th:action="@{/inventario/devoluciones}">
+            <div class="col-md-3">
+                <label class="form-label small" for="codigo">Código del EPP</label>
+                <input class="form-control cod" id="codigo" name="codigo" th:value="${codigo}" placeholder="EPP-003-0001" required autofocus>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small" for="condicion">Condición</label>
+                <select class="form-select" id="condicion" name="condicion" required>
+                    <option value="">Seleccione…</option>
+                    <option th:each="c : ${condiciones}" th:value="${c}" th:text="${c.etiqueta}"></option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small" for="observacion">Observación</label>
+                <input class="form-control" id="observacion" name="observacion" maxlength="450" placeholder="Ej.: correa rota, mica rayada">
+            </div>
+            <div class="col-md-2"><button class="btn btn-primary w-100">Registrar</button></div>
+        </form>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-6"><div class="card h-100">
+            <div class="card-body pb-0"><h2 class="h6">Pendientes de devolución <span class="badge text-bg-warning" th:text="${#lists.size(pendientes)}">0</span></h2>
+                <p class="small text-muted">EPP que siguen en poder del trabajador aunque ya se renovaron, vencieron o el trabajador cesó.</p></div>
+            <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Código</th><th>EPP</th><th>Trabajador</th><th>Motivo</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="u : ${pendientes}">
+                    <td><a class="cod" th:href="@{/inventario/unidad/{id}(id=${u.idUnidad})}" th:text="${u.codigo}"></a></td>
+                    <td class="small" th:text="${u.epp.nombre}"></td>
+                    <td class="small" th:text="${u.trabajador.nombreCompleto}"></td>
+                    <td class="small"><span th:if="${!u.trabajador.estado.laborando}">Cesado</span>
+                        <span th:if="${u.trabajador.estado.laborando and u.detalle != null}" th:text="${u.detalle.estadoVigencia.etiqueta}"></span></td>
+                    <td><a class="btn btn-sm btn-outline-primary" th:href="@{/inventario/devoluciones(codigo=${u.codigo})}">Devolver</a></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(pendientes)}"><td colspan="5" class="vacio">No hay EPP pendientes de devolución.</td></tr>
+                </tbody>
+            </table></div>
+        </div></div>
+        <div class="col-lg-6"><div class="card h-100">
+            <div class="card-body pb-0"><h2 class="h6">Últimos EPP devueltos</h2></div>
+            <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Fecha</th><th>Código</th><th>Trabajador</th><th>Condición</th><th>Decisión</th></tr></thead>
+                <tbody>
+                <tr th:each="m : ${devueltos}">
+                    <td class="small" th:text="${#temporals.format(m.fecha, 'dd/MM HH:mm')}"></td>
+                    <td><a class="cod" th:href="@{/inventario/unidad/{id}(id=${m.unidad.idUnidad})}" th:text="${m.unidad.codigo}"></a></td>
+                    <td class="small" th:text="${m.trabajador != null} ? ${m.trabajador.nombreCompleto} : '—'"></td>
+                    <td class="small" th:text="${m.condicion.etiqueta}"></td>
+                    <td class="small" th:text="${m.observacion}"></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(devueltos)}"><td colspan="5" class="vacio">Aún no se registran devoluciones.</td></tr>
+                </tbody>
+            </table></div>
+        </div></div>
+    </div>
+</section>
+</body>
+</html>

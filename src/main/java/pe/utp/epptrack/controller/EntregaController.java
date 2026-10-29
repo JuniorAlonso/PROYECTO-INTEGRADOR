@@ -101,8 +101,14 @@ public class EntregaController {
                 model.addAttribute("error", "El trabajador ya tiene vigentes los EPP marcados en amarillo. "
                         + "Escriba la justificación para entregarlos de nuevo (RF-07).");
             } else {
-                entregaService.registrar(form, auth.getName());
-                flash.addFlashAttribute("exito", "Entrega registrada para " + trabajador.getNombreCompleto() + ".");
+                var entrega = entregaService.registrar(form, auth.getName());
+                String codigos = entrega.getCodigosAsignados().isEmpty() ? ""
+                        : " Códigos asignados: " + String.join(", ", entrega.getCodigosAsignados()) + ".";
+                flash.addFlashAttribute("exito", "Entrega registrada para " + trabajador.getNombreCompleto() + "." + codigos);
+                if (!entrega.getSinStock().isEmpty()) {
+                    flash.addFlashAttribute("error", "Sin stock con código en almacén para: "
+                            + String.join(", ", entrega.getSinStock()) + ". Registre el ingreso en Inventario.");
+                }
                 return "redirect:/historial?dni=" + trabajador.getDni();
             }
         } catch (ReglaNegocioException e) {
