@@ -84,7 +84,9 @@ templates/        Vistas Thymeleaf (layout común en fragments/layout.html)
 - [x] **Posibles fichas duplicadas** (RF-27): mismo nombre (sin tildes) o mismos apellidos y fecha de nacimiento.
 - [x] **Bitácora de auditoría con huella SHA-256 encadenada** (RF-28): menú Auditoría; detecta alteraciones directas en la base.
 - [x] **Exportación a Excel nativo (.xlsx) con Apache POI** (RF-12), con la huella de auditoría al pie.
-- Pruebas: `MotorDecisionesTest` (PR-01 a PR-13) y `MotorWebTest` (PR-14 a PR-17). Total: 82 pruebas.
+- Pruebas: `MotorDecisionesTest` (PR-01 a PR-13) y `MotorWebTest` (PR-14 a PR-18). Total: 83 pruebas.
+- Se corrigió un defecto previo: los botones de exportación de reportes generaban una URL inválida.
+- Guion de demostración y ejecución desde un clon limpio: [docs/DEMO_APF3.md](docs/DEMO_APF3.md).
 
 ### Pendiente
 - [ ] Antes de un despliegue real: quitar los usuarios de demo y poner `app.datos-demo=false`.

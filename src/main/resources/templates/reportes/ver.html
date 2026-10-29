@@ -10,10 +10,10 @@
             <button type="button" class="btn btn-outline-primary btn-sm" data-imprimir>
                 <i class="bi bi-printer"></i> Imprimir / PDF</button>
             <a class="btn btn-success btn-sm"
-               th:href="@{/reportes/{c}.csv(c=${#strings.replace(reporte.codigo, '-', '')})(sede=${param.sede},estado=${param.estado},dias=${param.dias},categoria=${param.categoria},dni=${param.dni},desde=${param.desde},hasta=${param.hasta})}">
+               th:href="@{/reportes/{c}.csv(c=${#strings.replace(reporte.codigo, '-', '')},sede=${param.sede},estado=${param.estado},dias=${param.dias},categoria=${param.categoria},dni=${param.dni},desde=${param.desde},hasta=${param.hasta})}">
                 <i class="bi bi-file-earmark-spreadsheet"></i> Excel (CSV)</a>
             <a class="btn btn-success btn-sm"
-               th:href="@{/reportes/{c}.xlsx(c=${#strings.replace(reporte.codigo, '-', '')})(sede=${param.sede},estado=${param.estado},dias=${param.dias},categoria=${param.categoria},dni=${param.dni},desde=${param.desde},hasta=${param.hasta})}">
+               th:href="@{/reportes/{c}.xlsx(c=${#strings.replace(reporte.codigo, '-', '')},sede=${param.sede},estado=${param.estado},dias=${param.dias},categoria=${param.categoria},dni=${param.dni},desde=${param.desde},hasta=${param.hasta})}">
                 <i class="bi bi-file-earmark-excel"></i> Excel (.xlsx)</a>
         </div>
     </div>

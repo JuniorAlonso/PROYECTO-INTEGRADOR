@@ -82,4 +82,13 @@ class MotorWebTest {
             assertThat(wb.getSheetAt(0).getRow(0).getCell(0).getStringCellValue()).startsWith("R-01");
         }
     }
+
+    @Test
+    @WithMockUser(username = "sup-test", roles = "SUPERVISOR")
+    void pr18LosBotonesDeExportacionApuntanALaUrlCorrecta() throws Exception {
+        String html = mvc.perform(get("/reportes/R03").param("dias", "30")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        assertThat(html).contains("/reportes/R03.xlsx?").contains("/reportes/R03.csv?").contains("dias=30")
+                .doesNotContain("{c}");
+    }
 }

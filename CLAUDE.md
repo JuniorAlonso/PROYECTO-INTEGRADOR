@@ -35,7 +35,7 @@ Spring Security · MySQL 8 · Maven (usar el wrapper `mvnw` / `mvnw.cmd`). Boots
 ```bash
 ./mvnw spring-boot:run                                   # MySQL localhost:3306, base "epptrack" (se crea sola)
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=h2     # sin MySQL, base en memoria
-./mvnw test                                              # 82 pruebas, usan H2 (perfil "test")
+./mvnw test                                              # 83 pruebas, usan H2 (perfil "test")
 ```
 Credenciales MySQL por variables de entorno `DB_USER` (default `root`) y `DB_PASSWORD` (default vacío).
 Con base vacía se cargan datos simulados (`config/DataInitializer.java`). Usuarios demo: ver README.
@@ -99,6 +99,18 @@ RENOVADO (reemplazado por una entrega nueva), ANULADO. Se recalcula a diario y a
     `anularDetalle(idDetalle, motivo, usuario)` (RF-05, RF-06, RF-07, RF-13).
   - `VigenciaService.alertas(idSede, estado)` y `renovacionesHasta(dias, idSede, idCategoria)` (RF-09, R-03).
   - `TrabajadorService.registrarCese(...)`, `registrarReingreso(...)`, `buscarPorDni(...)` (RN-04).
+
+## 5b. APF3 (rama `apf3-motor-decisiones`)
+
+- `MotorDotacionService` → `EvaluacionDotacion`: estado por EPP (cubierto, incompleto, vencido, faltante), regla aplicada,
+  dotación neta y alertas (reincorporado, actividad sin matriz, posible ficha duplicada, matriz sin publicar). Tarjeta
+  `fragments/evaluacion.html` en Historial y Registro de entregas.
+- RN-06: EPP no exigido por la matriz → justificación obligatoria (`EntregaService.noExigidosSinJustificar`).
+- RN-07 / RF-21: `MatrizVersionService` (publicar, impacto); `Entrega.versionMatriz`.
+- RF-27: `IdentidadService`. RF-28: `AuditoriaService` (huella SHA-256 encadenada, `/auditoria`).
+- RF-12: `ExcelReporteService` (Apache POI). Guion de demo: `docs/DEMO_APF3.md`.
+- Catálogo maestro RF-01 a RF-30 y trazabilidad: Anexos 31–32 del informe. NO inventar criterios de SST
+  (habilitación, kit imprescindible): quedan como pendientes de validación.
 
 ## 6. Pendiente
 
