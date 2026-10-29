@@ -43,7 +43,9 @@
                 <i class="bi bi-graph-up-arrow"></i> Radar de reposición</a></li>
             <li class="nav-grupo" aria-hidden="true" sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')">Inventario</li>
             <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${rutaActual == '/inventario'} ? active" th:href="@{/inventario}">
-                <i class="bi bi-boxes"></i> Stock vs. personal <span class="nuevo">Nuevo</span></a></li>
+                <i class="bi bi-boxes"></i> Stock vs. personal</a></li>
+            <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${rutaActual == '/inventario/necesidad'} ? active" th:href="@{/inventario/necesidad}">
+                <i class="bi bi-clipboard-data"></i> Necesidad de EPP <span class="nuevo">Nuevo</span></a></li>
             <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/inventario/unidad')} ? active" th:href="@{/inventario/unidades}">
                 <i class="bi bi-upc-scan"></i> Códigos de EPP</a></li>
             <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/inventario/devoluciones')} ? active" th:href="@{/inventario/devoluciones}">

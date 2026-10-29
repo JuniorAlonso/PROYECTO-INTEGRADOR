@@ -282,10 +282,17 @@ public class EntregaService {
                     .append(";");
             entrega.agregarDetalle(detalle);
             detalleRepository.save(detalle);
-            List<String> codigos = inventarioService.asignar(detalle, trabajador, nombreUsuario);
-            entrega.getCodigosAsignados().addAll(codigos);
-            if (codigos.size() < detalle.getCantidad()) {
-                entrega.getSinStock().add(epp.getNombre() + " (" + (detalle.getCantidad() - codigos.size()) + ")");
+            int cubierto;
+            if (epp.isDesechable()) {
+                // Consumible: se descuenta del saldo de lotes; no hay códigos por unidad.
+                cubierto = inventarioService.consumirConsumible(detalle, trabajador, nombreUsuario);
+            } else {
+                List<String> codigos = inventarioService.asignar(detalle, trabajador, nombreUsuario);
+                entrega.getCodigosAsignados().addAll(codigos);
+                cubierto = codigos.size();
+            }
+            if (cubierto < detalle.getCantidad()) {
+                entrega.getSinStock().add(epp.getNombre() + " (" + (detalle.getCantidad() - cubierto) + ")");
             }
             historialRepository.save(new HistorialEpp(trabajador, detalle,
                     duplicado ? HistorialEpp.ENTREGA_DUPLICADA : HistorialEpp.ENTREGA,

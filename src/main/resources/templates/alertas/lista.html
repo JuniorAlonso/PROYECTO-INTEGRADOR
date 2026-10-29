@@ -10,7 +10,7 @@
     <form class="row g-2 mb-3" method="get" th:action="@{/alertas}">
         <input type="hidden" name="estado" th:value="${estado}">
         <div class="col-md-4">
-            <select class="form-select" name="sede" data-autosubmit>
+            <select class="form-select" name="sede" aria-label="Filtrar por sede" data-autosubmit>
                 <option value="">Todas las sedes</option>
                 <option th:each="s : ${sedes}" th:value="${s.idSede}" th:text="${s.nombre}"
                         th:selected="${s.idSede == sedeSeleccionada}"></option>

@@ -14,6 +14,7 @@ import pe.utp.epptrack.repository.UnidadEppRepository;
 import pe.utp.epptrack.service.InventarioService;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -75,7 +76,21 @@ public class InventarioInitializer implements CommandLineRunner {
                 .filter(d -> d.getEstadoVigencia() != EstadoVigencia.ANULADO)
                 .sorted(Comparator.comparing(DetalleEntrega::getIdDetalle))
                 .toList();
+        // Desechables: un lote ficticio por EPP (con margen y vencimiento en 20 días) del que se consume lo ya entregado.
+        Map<Integer, Integer> entregadoDesechable = new java.util.LinkedHashMap<>();
         for (DetalleEntrega d : entregados) {
+            if (d.getEpp().isDesechable()) {
+                entregadoDesechable.merge(d.getEpp().getIdEpp(), d.getCantidad(), Integer::sum);
+            }
+        }
+        entregadoDesechable.forEach((idEpp, total) -> inventarioService.ingresarConsumible(idEpp, total + 3,
+                "LOTE-DEMO-A%03d".formatted(idEpp), LocalDate.now().plusDays(20), "Lote de demostración (datos ficticios)",
+                USUARIO));
+        for (DetalleEntrega d : entregados) {
+            if (d.getEpp().isDesechable()) {
+                inventarioService.consumirConsumible(d, d.getEntrega().getTrabajador(), USUARIO);
+                continue;
+            }
             inventarioService.ingresar(d.getEpp().getIdEpp(), d.getCantidad(), USUARIO)
                     .forEach(u -> u.setFechaIngreso(d.getEntrega().getFechaEntrega()));
             inventarioService.asignar(d, d.getEntrega().getTrabajador(), USUARIO);
@@ -89,24 +104,55 @@ public class InventarioInitializer implements CommandLineRunner {
                 case 2 -> 8;
                 default -> 12;
             };
+            if (epp.isDesechable()) {
+                // Segundo lote ficticio con vencimiento variado (3, 6 o 12 meses); sin vencimiento si el id es múltiplo de 5.
+                LocalDate vence = epp.getIdEpp() % 5 == 0 ? null : LocalDate.now().plusDays(90L * (1 + epp.getIdEpp() % 3));
+                inventarioService.ingresarConsumible(epp.getIdEpp(), stock * 5, "LOTE-DEMO-B%03d".formatted(epp.getIdEpp()),
+                        vence, "Lote de demostración (datos ficticios)", USUARIO);
+                continue;
+            }
             inventarioService.ingresar(epp.getIdEpp(), stock, USUARIO);
         }
 
-        // Devoluciones de ejemplo de los EPP renovados que siguen en poder del trabajador.
-        List<UnidadEpp> pendientes = inventarioService.pendientesDevolucion();
+        cargarFlujoDeDemostracion();
+    }
+
+    /**
+     * Devoluciones y recorrido de ejemplo (datos ficticios): una unidad queda por inspeccionar, una por autorizar
+     * (la reparada con costo), una en cuarentena, una en taller con su registro y una dada de baja.
+     */
+    private void cargarFlujoDeDemostracion() {
+        List<UnidadEpp> candidatas = new java.util.ArrayList<>(inventarioService.pendientesDevolucion());
+        unidadRepository.findByEstadoOrderByCodigoAsc(EstadoUnidad.ASIGNADO).stream()
+                .filter(u -> u.getEpp().isPermiteDevolucion() && !candidatas.contains(u))
+                .forEach(candidatas::add);
         CondicionEpp[] condiciones = {CondicionEpp.REPARABLE, CondicionEpp.REPARABLE, CondicionEpp.BUENO,
-                CondicionEpp.INSERVIBLE, CondicionEpp.REPARABLE};
-        for (int i = 0; i < Math.min(condiciones.length, pendientes.size()); i++) {
-            inventarioService.devolver(pendientes.get(i).getCodigo(), condiciones[i],
-                    pe.utp.epptrack.model.MotivoDevolucion.REEMPLAZO, "Devolución de demostración", USUARIO);
+                CondicionEpp.BUENO, CondicionEpp.BUENO, CondicionEpp.INSERVIBLE};
+        List<UnidadEpp> devueltas = new java.util.ArrayList<>();
+        for (int i = 0; i < Math.min(condiciones.length, candidatas.size()); i++) {
+            devueltas.add(inventarioService.devolver(candidatas.get(i).getCodigo(), condiciones[i],
+                    MotivoDevolucion.REEMPLAZO, "Devolución de demostración", USUARIO));
         }
-        List<UnidadEpp> aptos = inventarioService.enEstado(EstadoUnidad.POR_MANTENIMIENTO);
-        if (!aptos.isEmpty()) {
-            inventarioService.enviarAMantenimiento(aptos.getFirst().getIdUnidad(), USUARIO);
-            inventarioService.cerrarMantenimiento(aptos.getFirst().getIdUnidad(), true, "Cambio de correa y limpieza", USUARIO);
+        if (devueltas.size() > 0 && devueltas.get(0).getEstado() == EstadoUnidad.POR_INSPECCION) {   // mantenimiento cerrado con costo
+            Integer id = devueltas.get(0).getIdUnidad();
+            inventarioService.registrarInspeccion(id, ResultadoInspeccion.REQUIERE_MANTENIMIENTO, "Correa desgastada", USUARIO);
+            inventarioService.enviarAMantenimiento(id, "Correa desgastada y suciedad", "Cambio de correa y limpieza", USUARIO);
+            inventarioService.cerrarMantenimiento(id, ResultadoMantenimiento.REPARADO, "Cambio de correa y limpieza",
+                    new BigDecimal("12.50"), null, USUARIO);
         }
-        if (aptos.size() > 1) {
-            inventarioService.enviarAMantenimiento(aptos.get(1).getIdUnidad(), USUARIO);
+        if (devueltas.size() > 1 && devueltas.get(1).getEstado() == EstadoUnidad.POR_INSPECCION) {   // en taller, registro abierto
+            Integer id = devueltas.get(1).getIdUnidad();
+            inventarioService.registrarInspeccion(id, ResultadoInspeccion.REQUIERE_MANTENIMIENTO, "Costura abierta", USUARIO);
+            inventarioService.enviarAMantenimiento(id, "Costura abierta en el costado", "Recostura", USUARIO);
         }
+        if (devueltas.size() > 2 && devueltas.get(2).getEstado() == EstadoUnidad.POR_INSPECCION) {   // en cuarentena
+            inventarioService.registrarInspeccion(devueltas.get(2).getIdUnidad(), ResultadoInspeccion.NO_APTO_CUARENTENA,
+                    "Se duda de su estado: queda apartada hasta que una persona decida", USUARIO);
+        }
+        if (devueltas.size() > 3 && devueltas.get(3).getEstado() == EstadoUnidad.POR_INSPECCION) {   // por autorizar
+            inventarioService.registrarInspeccion(devueltas.get(3).getIdUnidad(), ResultadoInspeccion.APTO_PARA_USO,
+                    null, USUARIO);
+        }
+        // devueltas.get(4) queda POR_INSPECCION y devueltas.get(5) (inservible) queda DE_BAJA.
     }
 }

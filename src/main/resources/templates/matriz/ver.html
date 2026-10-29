@@ -92,7 +92,7 @@
                         <td th:text="${r.obligatorio} ? 'Sí' : 'No'"></td>
                         <td class="text-end" sec:authorize="hasRole('ADMIN')">
                             <form method="post" th:action="@{/matriz/{id}/quitar(id=${r.idMatriz})}">
-                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-x-lg"></i></button>
+                                <button class="btn btn-sm btn-outline-danger" aria-label="Quitar este EPP de la actividad" title="Quitar"><i class="bi bi-x-lg"></i></button>
                             </form>
                         </td>
                     </tr>

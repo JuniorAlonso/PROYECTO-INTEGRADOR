@@ -7,23 +7,144 @@
     <a class="small" th:href="@{/inventario/unidades}"><i class="bi bi-arrow-left"></i> Códigos de EPP</a>
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 my-3 encabezado-pagina">
         <div>
-            <h1 class="h4 mb-1"><span class="cod" th:text="${unidad.codigo}">EPP-001-0001</span></h1>
+            <h1 class="h4 mb-1"><span class="cod" style="user-select: all" th:text="${unidad.codigo}">EPP-001-0001</span></h1>
             <p class="subtitulo mb-0" th:text="${unidad.epp.nombre + ' · ' + unidad.epp.categoria.nombre}"></p>
+            <p class="small text-muted mb-0">Seleccione el código para copiarlo. <a th:href="@{/inventario/unidad/{id}/etiqueta(id=${unidad.idUnidad})}"><i class="bi bi-printer" aria-hidden="true"></i> Etiqueta imprimible</a></p>
         </div>
         <div>
-            <span class="badge fs-6" th:classappend="'text-bg-' + ${unidad.estado.color}" th:text="${unidad.estado.etiqueta}"></span>
-            <a th:if="${unidad.estado.name() == 'ASIGNADO'}" class="btn btn-sm btn-primary ms-2"
+            <span class="badge fs-6" th:classappend="'text-bg-' + ${unidad.estado.color}"><i class="bi bi-circle-fill small" aria-hidden="true"></i> <span th:text="${unidad.estado.etiqueta}"></span></span>
+            <a th:if="${unidad.estado.name() == 'ASIGNADO' and unidad.epp.permiteDevolucion}" class="btn btn-sm btn-primary ms-2"
                th:href="@{/inventario/devoluciones(codigo=${unidad.codigo})}"><i class="bi bi-arrow-return-left"></i> Registrar devolución</a>
         </div>
     </div>
+
     <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3"><div class="card card-body"><div class="small text-muted">Tipo / clase de EPP</div>
+            <strong th:text="${unidad.epp.nombre}"></strong><div class="small" th:text="${unidad.epp.claseEfectiva.etiqueta}"></div></div></div>
         <div class="col-6 col-md-3"><div class="card card-body"><div class="small text-muted">Condición</div><strong th:text="${unidad.condicion.etiqueta}"></strong></div></div>
         <div class="col-6 col-md-3"><div class="card card-body"><div class="small text-muted">En poder de</div>
-            <strong th:text="${unidad.trabajador != null} ? ${unidad.trabajador.nombreCompleto} : 'Almacén / taller'"></strong></div></div>
+            <strong th:text="${unidad.trabajador != null} ? ${unidad.trabajador.nombreCompleto} : 'Almacén / taller'"></strong>
+            <div class="small" th:if="${unidad.detalle != null}">Entrega del <span th:text="${#temporals.format(unidad.detalle.entrega.fechaEntrega, 'dd/MM/yyyy')}"></span></div></div></div>
+        <div class="col-6 col-md-3"><div class="card card-body"><div class="small text-muted">Vida útil: renovación de la entrega</div>
+            <strong th:if="${unidad.detalle != null and unidad.detalle.fechaRenovacion != null}" th:text="${#temporals.format(unidad.detalle.fechaRenovacion, 'dd/MM/yyyy')}"></strong>
+            <strong th:if="${unidad.detalle == null or unidad.detalle.fechaRenovacion == null}">—</strong></div></div>
         <div class="col-6 col-md-3"><div class="card card-body"><div class="small text-muted">Ingreso al almacén</div><strong th:text="${#temporals.format(unidad.fechaIngreso, 'dd/MM/yyyy')}"></strong></div></div>
         <div class="col-6 col-md-3"><div class="card card-body"><div class="small text-muted">Reparaciones</div><strong th:text="${unidad.vecesReparado}"></strong></div></div>
     </div>
-    <div class="card"><div class="card-body pb-0"><h2 class="h6">Movimientos</h2></div><div class="table-responsive">
+
+    <div class="alert alert-light border small" th:if="${unidad.estado.name() == 'POR_INSPECCION' or unidad.estado.name() == 'POR_AUTORIZAR' or unidad.estado.name() == 'EN_CUARENTENA'}">
+        <i class="bi bi-person-check" aria-hidden="true"></i>
+        La autorización la decide una persona; los criterios de SST para reutilizar EPP críticos están pendientes de validación.
+        El sistema no autoriza nada por sí solo.
+    </div>
+
+    <!-- Acciones permitidas según el estado (ADMIN y SUPERVISOR); cada una exige marcar la confirmación -->
+    <div class="card mb-3" th:if="${unidad.estado.name() == 'POR_INSPECCION'}"><div class="card-body">
+        <h2 class="h6"><i class="bi bi-clipboard-check" aria-hidden="true"></i> Registrar inspección</h2>
+        <form class="row g-2" method="post" th:action="@{/inventario/unidad/{id}/inspeccion(id=${unidad.idUnidad})}">
+            <div class="col-md-4">
+                <label class="form-label small" for="resultado">Resultado</label>
+                <select class="form-select" id="resultado" name="resultado" required>
+                    <option value="">Seleccione…</option>
+                    <option th:each="r : ${resultadosInspeccion}" th:value="${r}" th:text="${r.etiqueta}"></option>
+                </select>
+            </div>
+            <div class="col-md-8">
+                <label class="form-label small" for="observaciones">Observaciones (obligatorias salvo «apto para uso»)</label>
+                <input class="form-control" id="observaciones" name="observaciones" maxlength="450">
+            </div>
+            <div class="col-12 d-flex flex-wrap gap-3 align-items-center">
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="conf-insp" required>
+                    <label class="form-check-label small" for="conf-insp">Confirmo que inspeccioné esta unidad físicamente.</label></div>
+                <button class="btn btn-primary btn-sm">Registrar inspección</button>
+            </div>
+        </form>
+    </div></div>
+
+    <div class="card mb-3" th:if="${unidad.estado.name() == 'POR_AUTORIZAR'}"><div class="card-body">
+        <h2 class="h6"><i class="bi bi-shield-check" aria-hidden="true"></i> Autorización de retorno al almacén</h2>
+        <div class="row g-3">
+            <form class="col-lg-6" method="post" th:action="@{/inventario/unidad/{id}/autorizar(id=${unidad.idUnidad})}">
+                <label class="form-label small" for="obs-aut">Observación (opcional)</label>
+                <input class="form-control mb-2" id="obs-aut" name="observacion" maxlength="450">
+                <div class="form-check mb-2"><input class="form-check-input" type="checkbox" id="conf-aut" required>
+                    <label class="form-check-label small" for="conf-aut">Confirmo que autorizo que esta unidad vuelva a estar disponible para asignarse.</label></div>
+                <button class="btn btn-success btn-sm"><i class="bi bi-check2-circle" aria-hidden="true"></i> Autorizar retorno</button>
+            </form>
+            <form class="col-lg-6" method="post" th:action="@{/inventario/unidad/{id}/rechazar(id=${unidad.idUnidad})}">
+                <label class="form-label small" for="dest-rech">Rechazar y enviar a</label>
+                <select class="form-select mb-2" id="dest-rech" name="destino" required>
+                    <option value="EN_CUARENTENA">Cuarentena</option><option value="DE_BAJA">Baja</option>
+                </select>
+                <label class="form-label small" for="mot-rech">Motivo (obligatorio)</label>
+                <input class="form-control mb-2" id="mot-rech" name="motivo" maxlength="450" required>
+                <div class="form-check mb-2"><input class="form-check-input" type="checkbox" id="conf-rech" required>
+                    <label class="form-check-label small" for="conf-rech">Confirmo el rechazo del retorno.</label></div>
+                <button class="btn btn-outline-danger btn-sm">Rechazar retorno</button>
+            </form>
+        </div>
+    </div></div>
+
+    <div class="card mb-3" th:if="${unidad.estado.name() == 'EN_CUARENTENA'}"><div class="card-body">
+        <h2 class="h6"><i class="bi bi-slash-circle" aria-hidden="true"></i> Resolver cuarentena</h2>
+        <form class="row g-2" method="post" th:action="@{/inventario/unidad/{id}/cuarentena(id=${unidad.idUnidad})}">
+            <div class="col-md-4">
+                <label class="form-label small" for="dest-cuar">Destino</label>
+                <select class="form-select" id="dest-cuar" name="destino" required>
+                    <option value="POR_MANTENIMIENTO">Apta para mantenimiento</option>
+                    <option value="POR_AUTORIZAR">Pendiente de autorización de retorno</option>
+                    <option value="DE_BAJA">Baja</option>
+                </select>
+            </div>
+            <div class="col-md-8">
+                <label class="form-label small" for="mot-cuar">Motivo (obligatorio)</label>
+                <input class="form-control" id="mot-cuar" name="motivo" maxlength="450" required>
+            </div>
+            <div class="col-12 d-flex flex-wrap gap-3 align-items-center">
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="conf-cuar" required>
+                    <label class="form-check-label small" for="conf-cuar">Confirmo la decisión.</label></div>
+                <button class="btn btn-primary btn-sm">Resolver cuarentena</button>
+            </div>
+        </form>
+    </div></div>
+
+    <div class="card mb-3" th:if="${unidad.estado.name() == 'POR_MANTENIMIENTO'}"><div class="card-body">
+        <h2 class="h6"><i class="bi bi-send" aria-hidden="true"></i> Enviar a mantenimiento</h2>
+        <form class="row g-2" method="post" th:action="@{/inventario/unidad/{id}/enviar(id=${unidad.idUnidad})}">
+            <div class="col-md-6"><label class="form-label small" for="diag">Diagnóstico (obligatorio)</label>
+                <input class="form-control" id="diag" name="diagnostico" maxlength="450" required></div>
+            <div class="col-md-6"><label class="form-label small" for="acc-prev">Acción prevista</label>
+                <input class="form-control" id="acc-prev" name="accionPrevista" maxlength="450"></div>
+            <div class="col-12 d-flex flex-wrap gap-3 align-items-center">
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="conf-env" required>
+                    <label class="form-check-label small" for="conf-env">Confirmo el envío al taller.</label></div>
+                <button class="btn btn-primary btn-sm">Enviar a mantenimiento</button>
+            </div>
+        </form>
+    </div></div>
+
+    <div class="card mb-3" th:if="${unidad.estado.name() == 'EN_MANTENIMIENTO'}"><div class="card-body">
+        <h2 class="h6"><i class="bi bi-tools" aria-hidden="true"></i> Cerrar mantenimiento</h2>
+        <form class="row g-2" method="post" th:action="@{/inventario/unidad/{id}/cerrar(id=${unidad.idUnidad})}">
+            <div class="col-md-3"><label class="form-label small" for="res-mant">Resultado</label>
+                <select class="form-select" id="res-mant" name="resultado" required>
+                    <option th:each="r : ${resultadosMantenimiento}" th:value="${r}" th:text="${r.etiqueta}"></option>
+                </select></div>
+            <div class="col-md-5"><label class="form-label small" for="acc-real">Acción realizada</label>
+                <input class="form-control" id="acc-real" name="accionRealizada" maxlength="450"></div>
+            <div class="col-md-2"><label class="form-label small" for="costo">Costo (S/, opcional)</label>
+                <input class="form-control" id="costo" name="costo" type="number" min="0" step="0.01"></div>
+            <div class="col-md-2"><label class="form-label small" for="obs-mant">Observación</label>
+                <input class="form-control" id="obs-mant" name="observacion" maxlength="450"></div>
+            <div class="col-12 d-flex flex-wrap gap-3 align-items-center">
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="conf-cer" required>
+                    <label class="form-check-label small" for="conf-cer">Confirmo el cierre del mantenimiento.</label></div>
+                <button class="btn btn-primary btn-sm">Cerrar mantenimiento</button>
+            </div>
+        </form>
+    </div></div>
+
+    <div class="card mb-3"><div class="card-body pb-0"><h2 class="h6">Línea de tiempo de movimientos</h2></div><div class="table-responsive">
         <table class="table align-middle mb-0">
             <thead><tr><th>Fecha</th><th>Movimiento</th><th>Trabajador</th><th>Condición</th><th>Detalle</th><th>Usuario</th></tr></thead>
             <tbody>
@@ -38,6 +159,39 @@
             </tbody>
         </table>
     </div></div>
+
+    <div class="row g-3">
+        <div class="col-12"><div class="card"><div class="card-body pb-0"><h2 class="h6">Inspecciones</h2></div><div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Fecha</th><th>Inspector</th><th>Resultado</th><th>Observaciones</th><th>Autorización</th></tr></thead>
+                <tbody>
+                <tr th:each="i : ${inspecciones}">
+                    <td class="small" th:text="${#temporals.format(i.fecha, 'dd/MM/yyyy HH:mm')}"></td>
+                    <td class="small" th:text="${i.inspector}"></td>
+                    <td class="small" th:text="${i.resultado.etiqueta}"></td>
+                    <td class="small" th:text="${i.observaciones}"></td>
+                    <td class="small"><span th:if="${i.autorizacionPendiente}" class="estado estado-alerta"><i class="bi bi-hourglass-split" aria-hidden="true"></i>Pendiente</span>
+                        <span th:unless="${i.autorizacionPendiente}">—</span></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(inspecciones)}"><td colspan="5" class="vacio">Sin inspecciones registradas.</td></tr>
+                </tbody>
+            </table></div></div></div>
+        <div class="col-12"><div class="card"><div class="card-body pb-0"><h2 class="h6">Mantenimientos</h2></div><div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Inicio</th><th>Responsable</th><th>Diagnóstico</th><th>Resultado</th><th class="text-end">Costo</th></tr></thead>
+                <tbody>
+                <tr th:each="r : ${mantenimientos}">
+                    <td class="small" th:text="${#temporals.format(r.fechaInicio, 'dd/MM/yyyy')}"></td>
+                    <td class="small" th:text="${r.responsable}"></td>
+                    <td class="small" th:text="${r.diagnostico}"></td>
+                    <td class="small"><span th:if="${r.resultado != null}" th:text="${r.resultado.etiqueta}"></span>
+                        <span th:if="${r.resultado == null}" class="estado estado-info"><i class="bi bi-tools" aria-hidden="true"></i>Abierto</span></td>
+                    <td class="small text-end cod" th:text="${r.costo != null} ? 'S/ ' + ${#numbers.formatDecimal(r.costo, 1, 'COMMA', 2, 'POINT')} : '—'"></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(mantenimientos)}"><td colspan="5" class="vacio">Sin mantenimientos registrados.</td></tr>
+                </tbody>
+            </table></div></div></div>
+    </div>
 </section>
 </body>
 </html>

@@ -32,6 +32,8 @@ class InventarioPoliticaTest {
     @Autowired TrabajadorService trabajadorService;
     @Autowired EppRepository eppRepository;
     @Autowired MatrizAsignacionRepository matrizRepository;
+    @Autowired pe.utp.epptrack.repository.UnidadEppRepository unidadRepository;
+    @Autowired pe.utp.epptrack.service.LoteService loteService;
 
     Trabajador w1;
     Trabajador w2;
@@ -72,16 +74,46 @@ class InventarioPoliticaTest {
         return inventario.buscarPorCodigo(e.getCodigosAsignados().getFirst()).orElseThrow();
     }
 
+    /** Ingresa un lote de 1 unidad del consumible y lo entrega al trabajador. */
+    private Entrega entregarConsumible(Epp epp, Trabajador t) {
+        inventario.ingresar(epp.getIdEpp(), 1, "sup-test");
+        EntregaForm f = new EntregaForm();
+        f.setIdTrabajador(t.getIdTrabajador());
+        f.setFechaEntrega(LocalDate.now().minusDays(3));
+        f.setMotivo(MotivoEntrega.INGRESO);
+        f.setItems(List.of(new ItemEntregaForm(epp.getIdEpp(), true, 1)));
+        Entrega e = entregaService.registrar(f, "sup-test");
+        assertThat(e.getSinStock()).isEmpty();
+        return e;
+    }
+
+    /** Unidad CONSUMIDO como las que pueden existir en datos anteriores al control por lotes. */
+    private UnidadEpp unidadHeredada(Epp epp) {
+        UnidadEpp u = new UnidadEpp("EPP-%03d-HEREDADA".formatted(epp.getIdEpp()), epp);
+        u.setEstado(EstadoUnidad.CONSUMIDO);
+        return unidadRepository.save(u);
+    }
+
+    /** Inspecciona una unidad devuelta como «requiere mantenimiento» y la envía al taller. */
+    private void aMantenimiento(UnidadEpp u) {
+        inventario.registrarInspeccion(u.getIdUnidad(), ResultadoInspeccion.REQUIERE_MANTENIMIENTO, "Desgaste", "sup-test");
+        inventario.enviarAMantenimiento(u.getIdUnidad(), "Desgaste visible", null, "sup-test");
+    }
+
     private List<TipoMovimientoUnidad> tipos(UnidadEpp u) {
         return inventario.movimientos(u.getIdUnidad()).stream().map(MovimientoUnidad::getTipo).toList();
     }
 
     @Test
-    void desechableQuedaConsumidoYNoSePuedeDevolver() {
-        UnidadEpp u = entregar(desechable, w1);
-
-        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.CONSUMIDO);
-        assertThat(tipos(u)).contains(TipoMovimientoUnidad.CONSUMO).doesNotContain(TipoMovimientoUnidad.ASIGNACION);
+    void desechableSeDescuentaDeLotesYNoSePuedeDevolver() {
+        // Cambio de regla pedido por el profesor: el consumible se descuenta de un lote, sin unidad por código.
+        Entrega entrega = entregarConsumible(desechable, w1);
+        assertThat(entrega.getCodigosAsignados()).isEmpty();
+        assertThat(unidadRepository.findByEppIdEppAndEstadoOrderByIdUnidadAsc(desechable.getIdEpp(), EstadoUnidad.CONSUMIDO))
+                .isEmpty();
+        assertThat(loteService.saldo(desechable.getIdEpp())).isZero();
+        // Una unidad CONSUMIDO heredada de datos antiguos sigue sin devolverse.
+        UnidadEpp u = unidadHeredada(desechable);
         assertThat(inventario.pendientesDevolucion()).extracting(UnidadEpp::getCodigo).doesNotContain(u.getCodigo());
         assertThat(u.isPendienteDevolucion()).isFalse();
 
@@ -109,15 +141,18 @@ class InventarioPoliticaTest {
     void motivoOtroConObservacionSeAcepta() {
         UnidadEpp u = entregar(compartido, w1);
         inventario.devolver(u.getCodigo(), CondicionEpp.BUENO, MotivoDevolucion.OTRO, "Se prestó a otra cuadrilla", "sup-test");
-        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.DISPONIBLE);
+        // Cambio de regla pedido por el profesor: lo devuelto no vuelve solo a disponible. El compartido no exige
+        // inspección por su política, pero igual queda pendiente de autorización humana.
+        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.POR_AUTORIZAR);
     }
 
     @Test
-    void individualDevueltoEnBuenEstadoVaAInspeccionYNoVuelveAlAlmacenHastaCerrarElMantenimiento() {
+    void individualDevueltoEnBuenEstadoVaAInspeccionYNoVuelveAlAlmacenHastaInspeccionarYAutorizar() {
         UnidadEpp u = entregar(individual, w1);
         inventario.devolver(u.getCodigo(), CondicionEpp.BUENO, MotivoDevolucion.CESE_TRABAJADOR, null, "sup-test");
 
-        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.POR_MANTENIMIENTO);
+        // Cambio de regla pedido por el profesor: toda devolución pasa por inspección (antes iba a POR_MANTENIMIENTO).
+        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.POR_INSPECCION);
         assertThat(u.getTrabajador()).isNull();
         // no se puede entregar a otro trabajador mientras no se inspeccione
         EntregaForm f = new EntregaForm();
@@ -128,21 +163,26 @@ class InventarioPoliticaTest {
         Entrega sinStock = entregaService.registrar(f, "sup-test");
         assertThat(sinStock.getSinStock()).isNotEmpty();
         assertThat(sinStock.getCodigosAsignados()).isEmpty();
-        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.POR_MANTENIMIENTO);
+        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.POR_INSPECCION);
 
-        inventario.cerrarMantenimiento(u.getIdUnidad(), true, "Inspeccionado", "sup-test");
+        inventario.registrarInspeccion(u.getIdUnidad(), ResultadoInspeccion.APTO_PARA_USO, null, "sup-test");
+        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.POR_AUTORIZAR);
+        inventario.autorizarRetorno(u.getIdUnidad(), "Revisado", "sup-test");
         assertThat(u.getEstado()).isEqualTo(EstadoUnidad.DISPONIBLE);
-        assertThat(tipos(u)).contains(TipoMovimientoUnidad.REPARADO);
+        assertThat(tipos(u)).contains(TipoMovimientoUnidad.INSPECCION, TipoMovimientoUnidad.AUTORIZADO_RETORNO);
     }
 
     @Test
-    void compartidoEnBuenEstadoYVigenteVuelveAlAlmacen() {
+    void compartidoEnBuenEstadoYVigenteQuedaPorAutorizarYSoloEsDisponibleTrasAutorizar() {
         UnidadEpp u = entregar(compartido, w1);
         inventario.devolver(u.getCodigo(), CondicionEpp.BUENO, MotivoDevolucion.REEMPLAZO, null, "sup-test");
 
-        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.DISPONIBLE);
+        // Cambio de regla pedido por el profesor: antes un compartido en buen estado volvía directo al almacén.
+        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.POR_AUTORIZAR);
         assertThat(u.getTrabajador()).isNull();
         assertThat(u.getDetalle()).isNull();
+        inventario.autorizarRetorno(u.getIdUnidad(), null, "sup-test");
+        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.DISPONIBLE);
     }
 
     @Test
@@ -173,11 +213,14 @@ class InventarioPoliticaTest {
     }
 
     @Test
-    void overrideSinInspeccionEnIndividualLoDejaDisponible() {
+    void overrideSinInspeccionEnIndividualLoDejaPorAutorizarYSoloDisponibleTrasAutorizar() {
         UnidadEpp u = entregar(individual, w1);
         individual.setInspeccionAlDevolver(false);
         inventario.devolver(u.getCodigo(), CondicionEpp.BUENO, MotivoDevolucion.REEMPLAZO, null, "sup-test");
 
+        // Cambio de regla pedido por el profesor: sin inspección exigida igual requiere autorización humana.
+        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.POR_AUTORIZAR);
+        inventario.autorizarRetorno(u.getIdUnidad(), null, "sup-test");
         assertThat(u.getEstado()).isEqualTo(EstadoUnidad.DISPONIBLE);
     }
 
@@ -194,16 +237,15 @@ class InventarioPoliticaTest {
     }
 
     @Test
-    void anularLaEntregaDeUnDesechableConsumidoLiberaLaUnidad() {
-        UnidadEpp u = entregar(desechable, w1);
-        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.CONSUMIDO);
-        Integer idDetalle = u.getDetalle().getIdDetalle();
+    void anularLaEntregaDeUnDesechableRestituyeElSaldoDelLote() {
+        // Cambio de regla pedido por el profesor: se revierte el saldo del lote, no una unidad.
+        Entrega entrega = entregarConsumible(desechable, w1);
+        assertThat(loteService.saldo(desechable.getIdEpp())).isZero();
+        Integer idDetalle = entrega.getDetalles().getFirst().getIdDetalle();
 
         entregaService.anularDetalle(idDetalle, "Entrega registrada por error", "sup-test");
 
-        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.DISPONIBLE);
-        assertThat(u.getTrabajador()).isNull();
-        assertThat(tipos(u)).contains(TipoMovimientoUnidad.LIBERADO);
+        assertThat(loteService.saldo(desechable.getIdEpp())).isEqualTo(1);
     }
 
     @Test
@@ -214,6 +256,10 @@ class InventarioPoliticaTest {
         UnidadEpp u = entregar(compartido, w1);
         assertThat(inventario.ahorroLogrado()).isEqualByComparingTo(base);
         inventario.devolver(u.getCodigo(), CondicionEpp.BUENO, MotivoDevolucion.REEMPLAZO, null, "sup-test");
+        // Cambio de regla pedido por el profesor: la unidad debe autorizarse antes de estar disponible.
+        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.POR_AUTORIZAR);
+        assertThat(inventario.ahorroLogrado()).isEqualByComparingTo(base);
+        inventario.autorizarRetorno(u.getIdUnidad(), null, "sup-test");
         assertThat(u.getEstado()).isEqualTo(EstadoUnidad.DISPONIBLE);
         assertThat(inventario.ahorroLogrado()).isEqualByComparingTo(base);
 
@@ -242,8 +288,10 @@ class InventarioPoliticaTest {
 
         UnidadEpp u = entregar(compartido, w1);
         inventario.devolver(u.getCodigo(), CondicionEpp.REPARABLE, MotivoDevolucion.DETERIORO, null, "sup-test");
-        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.POR_MANTENIMIENTO);
-        inventario.cerrarMantenimiento(u.getIdUnidad(), false, "No se pudo", "sup-test");
+        // Cambio de regla pedido por el profesor: el reparable también se inspecciona antes de ir a mantenimiento.
+        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.POR_INSPECCION);
+        aMantenimiento(u);
+        inventario.cerrarMantenimiento(u.getIdUnidad(), ResultadoMantenimiento.NO_REPARABLE, "No se pudo", null, null, "sup-test");
         entregar(compartido, w2);
 
         assertThat(u.getEstado()).isEqualTo(EstadoUnidad.DE_BAJA);
@@ -257,7 +305,10 @@ class InventarioPoliticaTest {
 
         UnidadEpp u = entregar(compartido, w1);
         inventario.devolver(u.getCodigo(), CondicionEpp.REPARABLE, MotivoDevolucion.DETERIORO, null, "sup-test");
-        inventario.cerrarMantenimiento(u.getIdUnidad(), true, "Reparado", "sup-test");
+        aMantenimiento(u);
+        inventario.cerrarMantenimiento(u.getIdUnidad(), ResultadoMantenimiento.REPARADO, "Reparado", null, null, "sup-test");
+        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.POR_AUTORIZAR);   // reparada no es autorizada
+        inventario.autorizarRetorno(u.getIdUnidad(), null, "sup-test");
         UnidadEpp otra = entregar(compartido, w2);
 
         assertThat(otra.getIdUnidad()).isEqualTo(u.getIdUnidad());
@@ -295,7 +346,7 @@ class InventarioPoliticaTest {
         UnidadEpp u = entregar(sinClase, w1);
         assertThat(u.getEstado()).isEqualTo(EstadoUnidad.ASIGNADO);
         inventario.devolver(u.getCodigo(), CondicionEpp.BUENO, MotivoDevolucion.REEMPLAZO, null, "sup-test");
-        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.POR_MANTENIMIENTO);
+        assertThat(u.getEstado()).isEqualTo(EstadoUnidad.POR_INSPECCION);   // regla nueva: inspección primero
 
         sinClase.setClaseValidada(true);
         assertThat(sinClase.isClasePendienteValidacion()).isFalse();

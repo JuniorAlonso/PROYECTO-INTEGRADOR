@@ -40,21 +40,31 @@
     </div>
 
     <div class="card mb-3 no-imprimir"><div class="card-body">
-        <h2 class="h6">Ingresar unidades al almacén</h2>
-        <p class="small text-muted mb-2">Cada unidad recibe un código único (EPP-<em>tipo</em>-<em>número</em>) para seguirla en entregas, devoluciones y mantenimiento.</p>
+        <h2 class="h6">Ingresar al almacén</h2>
+        <p class="small text-muted mb-2">Los EPP reutilizables reciben un código único por unidad (EPP-<em>tipo</em>-<em>número</em>) para seguirlos en entregas, devoluciones y mantenimiento.
+            Los EPP desechables (consumibles) ingresan como <strong>lote</strong> con cantidad y vencimiento: se controlan por saldo, sin devolución individual.</p>
         <form class="row g-2 align-items-end" method="post" th:action="@{/inventario/ingreso}">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label class="form-label small" for="idEpp">EPP</label>
                 <select class="form-select" id="idEpp" name="idEpp" required>
                     <option value="">Seleccione…</option>
-                    <option th:each="e : ${epps}" th:value="${e.idEpp}" th:text="${e.nombre + ' · ' + e.categoria.nombre}"></option>
+                    <option th:each="e : ${epps}" th:value="${e.idEpp}"
+                            th:text="${e.nombre + ' · ' + e.categoria.nombre + (e.desechable ? ' (consumible)' : '')}"></option>
                 </select>
             </div>
             <div class="col-6 col-md-2">
                 <label class="form-label small" for="cantidad">Cantidad</label>
                 <input class="form-control" type="number" id="cantidad" name="cantidad" min="1" max="500" value="10" required>
             </div>
-            <div class="col-6 col-md-4"><button class="btn btn-primary w-100"><i class="bi bi-upc"></i> Generar códigos e ingresar</button></div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small" for="codigoLote">Código de lote <span class="text-muted">(consumibles, opcional)</span></label>
+                <input class="form-control" type="text" id="codigoLote" name="codigoLote" maxlength="40" placeholder="Se genera si lo deja vacío">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small" for="vencimiento">Vencimiento <span class="text-muted">(consumibles, opcional)</span></label>
+                <input class="form-control" type="date" id="vencimiento" name="vencimiento">
+            </div>
+            <div class="col-6 col-md-2"><button class="btn btn-primary w-100"><i class="bi bi-box-arrow-in-down"></i> Ingresar</button></div>
         </form>
     </div></div>
 
@@ -71,6 +81,7 @@
             <tbody>
             <tr th:each="f : ${resumen.filas}">
                 <td><a class="fw-semibold" th:href="@{/inventario/unidades(epp=${f.epp.idEpp})}" th:text="${f.epp.nombre}"></a>
+                    <span th:if="${f.epp.desechable}" class="estado estado-neutro"><i class="bi bi-box" aria-hidden="true"></i>Consumible</span><span th:unless="${f.epp.desechable}" class="estado estado-info"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Reutilizable</span>
                     <div class="text-muted small" th:text="${f.epp.categoria.nombre}"></div></td>
                 <td class="text-end cod" th:text="${f.trabajadores}"></td>
                 <td class="text-end cod" th:text="${f.requeridas}"></td>
@@ -86,8 +97,40 @@
             </tbody>
         </table>
     </div></div>
-    <p class="small text-muted mt-2">Comprar = (por entregar + renovaciones) − almacén − recuperables por mantenimiento.
+    <p class="small text-muted mt-2">Comprar = (por entregar + renovaciones) − almacén − recuperables (por inspeccionar, por autorizar,
+        aptas para mantenimiento o en taller; la cuarentena y las bajas no cuentan). Para los consumibles, almacén = saldo de lotes.
         Reparar antes de comprar reduce el gasto.</p>
+
+    <div class="card mt-3">
+        <div class="card-body pb-0">
+            <h2 class="h6 mb-1"><i class="bi bi-box"></i> Lotes de consumibles</h2>
+            <p class="small text-muted mb-2">Los EPP desechables se controlan por cantidad y lote; al entregar se descuenta primero el lote que vence antes.</p>
+        </div>
+        <div class="table-responsive" th:if="${!lotes.isEmpty()}">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>EPP</th><th>Lote</th><th>Ingreso</th><th>Vencimiento</th>
+                    <th class="text-end">Cantidad inicial</th><th class="text-end">Saldo</th></tr></thead>
+                <tbody>
+                <tr th:each="l : ${lotes}">
+                    <td th:text="${l.epp.nombre}"></td>
+                    <td class="cod" th:text="${l.codigoLote}"></td>
+                    <td th:text="${l.fechaIngreso}"></td>
+                    <td><span th:if="${l.fechaVencimiento == null}" class="text-muted">Sin vencimiento</span>
+                        <span th:if="${l.fechaVencimiento != null}" th:text="${l.fechaVencimiento}"></span>
+                        <span th:if="${l.vencido}" class="badge text-bg-danger ms-1">Vencido</span>
+                        <span th:if="${!l.vencido and l.fechaVencimiento != null and !l.fechaVencimiento.isAfter(limiteVencimiento)}"
+                              class="badge text-bg-warning ms-1">Vence pronto</span></td>
+                    <td class="text-end cod" th:text="${l.cantidadInicial}"></td>
+                    <td class="text-end cod fw-semibold" th:text="${l.saldo}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="card-body" th:if="${lotes.isEmpty()}">
+            <p class="text-muted mb-0">Aún no hay lotes. Seleccione un EPP desechable en el formulario de arriba (marcado «consumible») e ingrese
+                su primer lote con cantidad y, si lo tiene, su fecha de vencimiento.</p>
+        </div>
+    </div>
 </section>
 </body>
 </html>

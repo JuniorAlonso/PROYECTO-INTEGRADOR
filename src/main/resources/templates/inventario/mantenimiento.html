@@ -6,7 +6,7 @@
 <section>
     <div class="mb-3 encabezado-pagina">
         <h1 class="h4 mb-1"><i class="bi bi-tools"></i> Mantenimiento de EPP</h1>
-        <p class="subtitulo">EPP devueltos que el sistema determinó aptos para mantenimiento. Repararlos evita comprar unidades nuevas.</p>
+        <p class="subtitulo">Unidades que la inspección determinó aptas para mantenimiento. Cada envío y cierre queda registrado con diagnóstico, responsable y costo.</p>
     </div>
 
     <div class="row g-3 mb-3">
@@ -15,26 +15,47 @@
         <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body">
             <div class="text-muted small">En el taller</div><div class="valor" th:text="${#lists.size(enTaller)}">0</div></div></div></div>
         <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body">
-            <div class="text-muted small">Ahorro potencial</div>
-            <div class="valor">S/ <span th:text="${#numbers.formatDecimal(ahorroPotencial, 1, 'COMMA', 2, 'POINT')}">0</span></div>
-            <div class="small text-muted">si se reparan los pendientes</div></div></div></div>
-        <div class="col-6 col-md-3"><div class="card kpi" style="border-top-color: var(--ept-verde, #1F8A5B)"><div class="card-body">
-            <div class="text-muted small">Ahorro logrado</div>
-            <div class="valor">S/ <span th:text="${#numbers.formatDecimal(ahorroLogrado, 1, 'COMMA', 2, 'POINT')}">0</span></div>
-            <div class="small text-muted">EPP reparados o reutilizados</div></div></div></div>
+            <div class="text-muted small">Pendientes de autorización</div><div class="valor" th:text="${#lists.size(porAutorizar)}">0</div></div></div></div>
+        <div class="col-6 col-md-3"><div class="card kpi"><div class="card-body">
+            <div class="text-muted small">Costos de mantenimiento registrados</div>
+            <div class="valor">S/ <span th:text="${#numbers.formatDecimal(indicador.costoTotal, 1, 'COMMA', 2, 'POINT')}">0</span></div>
+            <div class="small text-muted" title="Suma del costo de los mantenimientos cerrados que tienen costo registrado">Con costo:
+                <span th:text="${indicador.cerradosConCosto}">0</span> de <span th:text="${indicador.cerrados}">0</span> cerrados</div></div></div></div>
     </div>
 
     <div class="alert alert-light border small">
-        <strong>Cómo decide el sistema al recibir una devolución:</strong>
-        solo se devuelven los EPP cuya política lo permite (los desechables se consumen y no se devuelven) ·
-        inservible → baja · reparable con menos de <span th:text="${maxReparaciones}">3</span> reparaciones → <strong>apto para mantenimiento</strong> ·
-        los de uso individual pasan siempre por inspección antes de volver a asignarse · en buen estado, compartido y vigente → vuelve al almacén.
-        <span class="text-muted">Estas reglas son de partida y están pendientes de validación por SST.</span>
+        <strong>Cómo se mueve una unidad:</strong>
+        devuelta → <em>por inspección</em> → (apta para mantenimiento | cuarentena | baja | apta para uso) →
+        mantenimiento reparado → <em>por autorización</em> → <strong>disponible solo cuando una persona autoriza</strong>.
+        Una unidad con <span th:text="${maxReparaciones}">3</span> reparaciones previas se da de baja en vez de repararse otra vez.
+        <span class="text-muted">La autorización la decide una persona; los criterios de SST para reutilizar EPP críticos están pendientes de validación.</span>
     </div>
+
+    <div class="card mb-3"><div class="card-body">
+        <h2 class="h6">Ahorro: potencial y realizado, por separado</h2>
+        <div class="row g-3">
+            <div class="col-md-6"><div class="ahorro ahorro-ok">
+                <div class="fw-semibold">Ahorro realizado <span class="estado estado-ok"><i class="bi bi-check-circle" aria-hidden="true"></i>calculado</span></div>
+                <div class="valor-medio" th:text="'S/ ' + (${ahorroRealizado != null} ? ${#numbers.formatDecimal(ahorroRealizado, 1, 'COMMA', 2, 'POINT')} : '0.00')">S/ 0.00</div>
+                <p class="small text-muted mb-0">Costo de compra evitado cada vez que una unidad ya usada (devuelta o reparada) se volvió a
+                    asignar a un trabajador después de ser autorizada. No cuenta el costo de mantenimiento ni las unidades que solo fueron devueltas.</p>
+                <p class="small mb-0" th:if="${ahorroRealizado == null or ahorroRealizado.signum() == 0}">Aún no hay unidades reutilizadas tras una devolución o reparación.</p>
+            </div></div>
+            <div class="col-md-6"><div class="ahorro ahorro-na">
+                <div class="fw-semibold">Ahorro potencial <span class="estado estado-neutro"><i class="bi bi-dash-circle" aria-hidden="true"></i>no calculable</span></div>
+                <p class="small mb-1">Falta un dato: el <strong>costo estimado de reparación</strong> por tipo de EPP no se registra en el sistema,
+                    por lo que no se puede estimar cuánto se ahorraría reparando en vez de reponer.</p>
+                <p class="small text-muted mb-0">Referencia, no ahorro: hay <strong th:text="${#lists.size(aptos)}">0</strong> unidades candidatas;
+                    reponerlas costaría S/ <span th:text="${#numbers.formatDecimal(referenciaReposicion, 1, 'COMMA', 2, 'POINT')}">0.00</span>
+                    <span th:if="${candidatosSinCosto > 0}">(sin contar <span th:text="${candidatosSinCosto}">0</span> sin costo unitario cargado)</span>.
+                    Que se puedan reparar depende del fabricante, de su estado y de las reglas de SST.</p>
+            </div>
+        </div>
+    </div></div>
 
     <div class="card mb-3"><div class="card-body pb-0"><h2 class="h6">Aptos para mantenimiento</h2></div><div class="table-responsive">
         <table class="table align-middle mb-0">
-            <thead><tr><th>Código</th><th>EPP</th><th>Condición</th><th class="text-end">Reparaciones</th><th class="text-end">Costo nuevo</th><th></th></tr></thead>
+            <thead><tr><th>Código</th><th>EPP</th><th>Condición</th><th class="text-end">Reparaciones</th><th class="text-end">Costo nuevo</th><th>Enviar a mantenimiento</th></tr></thead>
             <tbody>
             <tr th:each="u : ${aptos}">
                 <td><a class="cod fw-semibold" th:href="@{/inventario/unidad/{id}(id=${u.idUnidad})}" th:text="${u.codigo}"></a></td>
@@ -42,12 +63,13 @@
                 <td class="small" th:text="${u.condicion.etiqueta}"></td>
                 <td class="text-end cod" th:text="${u.vecesReparado}"></td>
                 <td class="text-end cod" th:text="${u.epp.costoUnitario != null} ? 'S/ ' + ${u.epp.costoUnitario} : '—'"></td>
-                <td class="text-end text-nowrap">
-                    <form class="d-inline" method="post" th:action="@{/inventario/unidad/{id}/enviar(id=${u.idUnidad})}">
-                        <button class="btn btn-sm btn-primary"><i class="bi bi-send"></i> Enviar a mantenimiento</button></form>
-                    <form class="d-inline" method="post" th:action="@{/inventario/unidad/{id}/cerrar(id=${u.idUnidad})}">
-                        <input type="hidden" name="reparado" value="false">
-                        <button class="btn btn-sm btn-outline-secondary">Dar de baja</button></form>
+                <td>
+                    <form class="d-flex flex-wrap gap-2 align-items-center" method="post" th:action="@{/inventario/unidad/{id}/enviar(id=${u.idUnidad})}">
+                        <input class="form-control form-control-sm w-auto" name="diagnostico" maxlength="450" placeholder="Diagnóstico (obligatorio)" aria-label="Diagnóstico" required>
+                        <input class="form-control form-control-sm w-auto" name="accionPrevista" maxlength="450" placeholder="Acción prevista" aria-label="Acción prevista">
+                        <label class="small text-nowrap"><input type="checkbox" required> Confirmo</label>
+                        <button class="btn btn-sm btn-primary text-nowrap"><i class="bi bi-send"></i> Enviar</button>
+                    </form>
                 </td>
             </tr>
             <tr th:if="${#lists.isEmpty(aptos)}"><td colspan="6" class="vacio">No hay EPP pendientes de mantenimiento.</td></tr>
@@ -55,23 +77,82 @@
         </table>
     </div></div>
 
-    <div class="card"><div class="card-body pb-0"><h2 class="h6">En el taller</h2></div><div class="table-responsive">
+    <div class="card mb-3"><div class="card-body pb-0"><h2 class="h6">En el taller</h2></div><div class="table-responsive">
         <table class="table align-middle mb-0">
-            <thead><tr><th>Código</th><th>EPP</th><th class="text-end">Reparaciones</th><th>Resultado</th></tr></thead>
+            <thead><tr><th>Código</th><th>EPP</th><th>Diagnóstico</th><th>Responsable</th><th>Desde</th><th>Cerrar mantenimiento</th></tr></thead>
             <tbody>
             <tr th:each="u : ${enTaller}">
                 <td><a class="cod fw-semibold" th:href="@{/inventario/unidad/{id}(id=${u.idUnidad})}" th:text="${u.codigo}"></a></td>
                 <td th:text="${u.epp.nombre}"></td>
-                <td class="text-end cod" th:text="${u.vecesReparado}"></td>
+                <td class="small" th:text="${abiertos[u.idUnidad] != null} ? ${abiertos[u.idUnidad].diagnostico} : '—'"></td>
+                <td class="small" th:text="${abiertos[u.idUnidad] != null} ? ${abiertos[u.idUnidad].responsable} : '—'"></td>
+                <td class="small" th:text="${abiertos[u.idUnidad] != null} ? ${#temporals.format(abiertos[u.idUnidad].fechaInicio, 'dd/MM/yyyy')} : '—'"></td>
                 <td>
-                    <form class="d-flex gap-2" method="post" th:action="@{/inventario/unidad/{id}/cerrar(id=${u.idUnidad})}">
-                        <input class="form-control form-control-sm" name="observacion" maxlength="450" placeholder="Trabajo realizado" aria-label="Observación">
-                        <button class="btn btn-sm btn-success text-nowrap" name="reparado" value="true"><i class="bi bi-check2"></i> Reparado</button>
-                        <button class="btn btn-sm btn-outline-danger text-nowrap" name="reparado" value="false">No se pudo</button>
+                    <form class="d-flex flex-wrap gap-2 align-items-center" method="post" th:action="@{/inventario/unidad/{id}/cerrar(id=${u.idUnidad})}">
+                        <select class="form-select form-select-sm w-auto" name="resultado" aria-label="Resultado" required>
+                            <option th:each="r : ${resultadosMantenimiento}" th:value="${r}" th:text="${r.etiqueta}"></option>
+                        </select>
+                        <input class="form-control form-control-sm w-auto" name="accionRealizada" maxlength="450" placeholder="Trabajo realizado" aria-label="Trabajo realizado">
+                        <input class="form-control form-control-sm" style="width: 7rem" name="costo" type="number" min="0" step="0.01" placeholder="Costo S/" aria-label="Costo en soles">
+                        <label class="small text-nowrap"><input type="checkbox" required> Confirmo</label>
+                        <button class="btn btn-sm btn-success text-nowrap"><i class="bi bi-check2"></i> Cerrar</button>
                     </form>
                 </td>
             </tr>
-            <tr th:if="${#lists.isEmpty(enTaller)}"><td colspan="4" class="vacio">No hay EPP en el taller.</td></tr>
+            <tr th:if="${#lists.isEmpty(enTaller)}"><td colspan="6" class="vacio">No hay EPP en el taller.</td></tr>
+            </tbody>
+        </table>
+    </div></div>
+
+    <div class="card mb-3"><div class="card-body pb-0"><h2 class="h6">Pendientes de autorización de retorno</h2>
+        <p class="small text-muted mb-1">Reparados o inspeccionados aptos. Solo vuelven al almacén cuando una persona los autoriza en su ficha.</p></div><div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>Código</th><th>EPP</th><th>Reparaciones</th><th></th></tr></thead>
+            <tbody>
+            <tr th:each="u : ${porAutorizar}">
+                <td><a class="cod fw-semibold" th:href="@{/inventario/unidad/{id}(id=${u.idUnidad})}" th:text="${u.codigo}"></a></td>
+                <td th:text="${u.epp.nombre}"></td>
+                <td class="cod" th:text="${u.vecesReparado}"></td>
+                <td class="text-end"><a class="btn btn-sm btn-outline-primary" th:href="@{/inventario/unidad/{id}(id=${u.idUnidad})}">Revisar y decidir</a></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(porAutorizar)}"><td colspan="4" class="vacio">No hay unidades pendientes de autorización.</td></tr>
+            </tbody>
+        </table>
+    </div></div>
+
+    <div class="card mb-3"><div class="card-body pb-0"><h2 class="h6">Mantenimientos cerrados</h2></div><div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>Código</th><th>EPP</th><th>Diagnóstico</th><th>Responsable</th><th>Cierre</th><th>Resultado</th><th class="text-end">Costo</th></tr></thead>
+            <tbody>
+            <tr th:each="r : ${cerrados}">
+                <td><a class="cod fw-semibold" th:href="@{/inventario/unidad/{id}(id=${r.unidad.idUnidad})}" th:text="${r.unidad.codigo}"></a></td>
+                <td class="small" th:text="${r.unidad.epp.nombre}"></td>
+                <td class="small" th:text="${r.diagnostico}"></td>
+                <td class="small" th:text="${r.cerradoPor}"></td>
+                <td class="small" th:text="${r.fechaFin != null} ? ${#temporals.format(r.fechaFin, 'dd/MM/yyyy')} : '—'"></td>
+                <td class="small" th:text="${r.resultado != null} ? ${r.resultado.etiqueta} : '—'"></td>
+                <td class="small text-end cod" th:text="${r.costo != null} ? 'S/ ' + ${#numbers.formatDecimal(r.costo, 1, 'COMMA', 2, 'POINT')} : 'sin costo'"></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(cerrados)}"><td colspan="7" class="vacio">Aún no hay mantenimientos cerrados.</td></tr>
+            </tbody>
+        </table>
+    </div></div>
+
+    <div class="card"><div class="card-body pb-0"><h2 class="h6">Comparación con reposición <span class="estado estado-neutro">referencial</span></h2>
+        <p class="small text-muted mb-1">Comparación con reposición: solo se muestra para EPP con costo unitario cargado; es una referencia, no un ahorro demostrado.
+            Reposición equivalente = n × costo unitario, con n = mantenimientos cerrados como reparados que tienen costo registrado.
+            Diferencia = reposición − costo de mantenimiento.</p></div><div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>EPP</th><th class="text-end">Reparados (n)</th><th class="text-end">Costo de mantenimiento</th><th class="text-end">Reposición equivalente</th><th class="text-end">Diferencia (referencial)</th></tr></thead>
+            <tbody>
+            <tr th:each="f : ${indicador.comparacion}">
+                <td th:text="${f.epp.nombre}"></td>
+                <td class="text-end cod" th:text="${f.reparados}"></td>
+                <td class="text-end cod" th:text="'S/ ' + ${#numbers.formatDecimal(f.costoMantenimiento, 1, 'COMMA', 2, 'POINT')}"></td>
+                <td class="text-end cod" th:text="'S/ ' + ${#numbers.formatDecimal(f.costoReposicion, 1, 'COMMA', 2, 'POINT')}"></td>
+                <td class="text-end cod" th:text="'S/ ' + ${#numbers.formatDecimal(f.diferencia, 1, 'COMMA', 2, 'POINT')}"></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(indicador.comparacion)}"><td colspan="5" class="vacio">Datos insuficientes: falta costo unitario del EPP o mantenimientos cerrados con costo.</td></tr>
             </tbody>
         </table>
     </div></div>

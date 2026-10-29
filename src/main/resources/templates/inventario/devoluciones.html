@@ -6,8 +6,9 @@
 <section>
     <div class="mb-3 encabezado-pagina">
         <h1 class="h4 mb-1"><i class="bi bi-arrow-return-left"></i> Devoluciones de EPP</h1>
-        <p class="subtitulo">Registra el código del EPP que devuelve el trabajador y su condición. El sistema decide si vuelve
-            al almacén, va a mantenimiento o se da de baja.</p>
+        <p class="subtitulo">Registra el código del EPP que devuelve el trabajador y su condición. Toda unidad devuelta pasa por inspección y
+            por la autorización de una persona antes de volver al almacén; solo una unidad inservible se da de baja directamente.
+            Los EPP desechables se consumen con el uso: no se devuelven, y si se pierden o dañan se registra una nueva entrega.</p>
     </div>
 
     <div class="card card-body mb-3">
@@ -38,8 +39,59 @@
         </form>
     </div>
 
+    <div class="alert alert-light border small">La autorización la decide una persona; los criterios de SST para reutilizar
+        EPP críticos están pendientes de validación.</div>
+    <div class="card mb-3">
+        <div class="card-body pb-0"><h2 class="h6">Devueltos pendientes de inspección <span class="estado estado-info" th:text="${#lists.size(porInspeccion)}">0</span></h2>
+            <p class="small text-muted mb-1">Ninguna vuelve al almacén hasta ser inspeccionada y autorizada.</p></div>
+        <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Código</th><th>EPP</th><th>Condición</th><th></th></tr></thead>
+            <tbody>
+            <tr th:each="u : ${porInspeccion}">
+                <td><a class="cod fw-semibold" th:href="@{/inventario/unidad/{id}(id=${u.idUnidad})}" th:text="${u.codigo}"></a></td>
+                <td class="small" th:text="${u.epp.nombre}"></td>
+                <td class="small" th:text="${u.condicion.etiqueta}"></td>
+                <td class="text-end"><a class="btn btn-sm btn-outline-primary" th:href="@{/inventario/unidad/{id}(id=${u.idUnidad})}">Abrir ficha</a></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(porInspeccion)}"><td colspan="4" class="vacio">No hay unidades esperando inspección.</td></tr>
+            </tbody>
+        </table></div>
+    </div>
+    <div class="card mb-3">
+        <div class="card-body pb-0"><h2 class="h6">Pendientes de autorización <span class="estado estado-info" th:text="${#lists.size(porAutorizar)}">0</span></h2>
+            <p class="small text-muted mb-1">Inspeccionadas o reparadas: falta la decisión de retorno al almacén.</p></div>
+        <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Código</th><th>EPP</th><th>Condición</th><th></th></tr></thead>
+            <tbody>
+            <tr th:each="u : ${porAutorizar}">
+                <td><a class="cod fw-semibold" th:href="@{/inventario/unidad/{id}(id=${u.idUnidad})}" th:text="${u.codigo}"></a></td>
+                <td class="small" th:text="${u.epp.nombre}"></td>
+                <td class="small" th:text="${u.condicion.etiqueta}"></td>
+                <td class="text-end"><a class="btn btn-sm btn-outline-primary" th:href="@{/inventario/unidad/{id}(id=${u.idUnidad})}">Abrir ficha</a></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(porAutorizar)}"><td colspan="4" class="vacio">No hay unidades esperando autorización.</td></tr>
+            </tbody>
+        </table></div>
+    </div>
+    <div class="card mb-3">
+        <div class="card-body pb-0"><h2 class="h6">En cuarentena <span class="estado estado-info" th:text="${#lists.size(enCuarentena)}">0</span></h2>
+            <p class="small text-muted mb-1">Apartadas hasta que una persona decida su destino.</p></div>
+        <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Código</th><th>EPP</th><th>Condición</th><th></th></tr></thead>
+            <tbody>
+            <tr th:each="u : ${enCuarentena}">
+                <td><a class="cod fw-semibold" th:href="@{/inventario/unidad/{id}(id=${u.idUnidad})}" th:text="${u.codigo}"></a></td>
+                <td class="small" th:text="${u.epp.nombre}"></td>
+                <td class="small" th:text="${u.condicion.etiqueta}"></td>
+                <td class="text-end"><a class="btn btn-sm btn-outline-primary" th:href="@{/inventario/unidad/{id}(id=${u.idUnidad})}">Abrir ficha</a></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(enCuarentena)}"><td colspan="4" class="vacio">No hay unidades en cuarentena.</td></tr>
+            </tbody>
+        </table></div>
+    </div>
+
     <div class="row g-3">
-        <div class="col-lg-6"><div class="card h-100">
+        <div class="col-12"><div class="card">
             <div class="card-body pb-0"><h2 class="h6">Pendientes de devolución <span class="estado estado-alerta" th:text="${#lists.size(pendientes)}">0</span></h2>
                 <p class="small text-muted">EPP que siguen en poder del trabajador aunque ya se renovaron, vencieron o el trabajador cesó.</p></div>
             <div class="table-responsive"><table class="table table-sm align-middle mb-0">
@@ -57,7 +109,7 @@
                 </tbody>
             </table></div>
         </div></div>
-        <div class="col-lg-6"><div class="card h-100">
+        <div class="col-12"><div class="card">
             <div class="card-body pb-0"><h2 class="h6">Últimos EPP devueltos</h2></div>
             <div class="table-responsive"><table class="table table-sm align-middle mb-0">
                 <thead><tr><th>Fecha</th><th>Código</th><th>Trabajador</th><th>Motivo</th><th>Condición</th><th>Decisión</th></tr></thead>

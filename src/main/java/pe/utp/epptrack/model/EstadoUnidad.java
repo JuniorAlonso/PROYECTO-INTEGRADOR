@@ -4,6 +4,9 @@ package pe.utp.epptrack.model;
 public enum EstadoUnidad {
     DISPONIBLE("En almacén", "success"),
     ASIGNADO("Asignado a trabajador", "primary"),
+    POR_INSPECCION("Devuelto, pendiente de inspección", "warning"),
+    POR_AUTORIZAR("Inspeccionado, pendiente de autorización", "warning"),
+    EN_CUARENTENA("En cuarentena", "danger"),
     POR_MANTENIMIENTO("Apto para mantenimiento", "warning"),
     EN_MANTENIMIENTO("En mantenimiento", "info"),
     DE_BAJA("De baja", "secondary"),

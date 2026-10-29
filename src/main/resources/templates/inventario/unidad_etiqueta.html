@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Etiqueta de EPP · EPPTrack</title></head>
+<body>
+<section>
+    <style>
+        .etiqueta-epp { border: 2px dashed #6b7280; border-radius: .5rem; padding: 1.5rem; max-width: 26rem; text-align: center; }
+        .etiqueta-epp .codigo-grande { font-family: ui-monospace, Consolas, "Courier New", monospace; font-size: 2rem; font-weight: 700; letter-spacing: .05em; }
+        @media print {
+            body * { visibility: hidden; }
+            .etiqueta-epp, .etiqueta-epp * { visibility: visible; }
+            .etiqueta-epp { position: absolute; left: 0; top: 0; border: 1px solid #000; }
+        }
+    </style>
+    <a class="small" th:href="@{/inventario/unidad/{id}(id=${unidad.idUnidad})}"><i class="bi bi-arrow-left"></i> Ficha de la unidad</a>
+    <div class="my-3 encabezado-pagina">
+        <h1 class="h4 mb-1"><i class="bi bi-upc" aria-hidden="true"></i> Etiqueta de la unidad</h1>
+        <p class="subtitulo">Imprima esta página con Ctrl+P (solo se imprime la etiqueta).</p>
+    </div>
+    <div class="etiqueta-epp">
+        <div class="small text-muted">EPPTrack · Campos del Sur S.A.</div>
+        <div class="codigo-grande my-2" th:text="${unidad.codigo}">EPP-001-0001</div>
+        <div class="fw-semibold" th:text="${unidad.epp.nombre}">Nombre del EPP</div>
+        <div class="small" th:text="${unidad.epp.claseEfectiva.etiqueta}"></div>
+        <!-- Lugar reservado: este código está listo para convertirse en QR o código de barras (aún no se genera ninguno). -->
+        <div class="qr-lugar my-3" th:attr="data-codigo=${unidad.codigo}" aria-hidden="true"></div>
+    </div>
+</section>
+</body>
+</html>

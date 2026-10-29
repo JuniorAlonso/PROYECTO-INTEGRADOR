@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Necesidad de EPP según el personal · EPPTrack</title></head>
+<body>
+<section>
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3 encabezado-pagina">
+        <div>
+            <h1 class="h4 mb-1"><i class="bi bi-clipboard-data"></i> Necesidad de EPP según el personal</h1>
+            <p class="subtitulo">¿Alcanza el inventario para el personal que se tiene? Cada cifra indica si es
+                <strong>calculada</strong> con registros del sistema, <strong>faltante</strong> (no existe en el sistema)
+                o una <strong>estimación</strong> con su supuesto.</p>
+        </div>
+        <form class="d-flex gap-2" method="get" th:action="@{/inventario/necesidad}">
+            <select class="form-select" name="sede" data-autosubmit aria-label="Sede del personal">
+                <option value="">Todas las sedes</option>
+                <option th:each="s : ${sedes}" th:value="${s.idSede}" th:text="${s.nombre}" th:selected="${s.idSede == sedeSeleccionada}"></option>
+            </select>
+            <button class="btn btn-outline-secondary" aria-label="Filtrar"><i class="bi bi-funnel"></i></button>
+        </form>
+    </div>
+
+    <div class="alert alert-secondary small" role="note">
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
+        Los datos de demostración son ficticios. El stock con código no está asociado a una sede, por eso el filtro de sede
+        solo acota al personal (y sus renovaciones); el stock siempre es el total del almacén.
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-lg"><div class="card kpi"><div class="card-body">
+            <div class="text-muted small"><i class="bi bi-people"></i> Personal considerado</div>
+            <div class="valor" th:text="${necesidad.considerados}">0</div>
+            <div class="small text-muted">de <span th:text="${necesidad.laborando}">0</span> que laboran, con algún EPP obligatorio · calculado</div></div></div></div>
+        <div class="col-6 col-lg"><div class="card kpi" style="border-top-color: var(--ept-rojo)"><div class="card-body">
+            <div class="text-muted small"><i class="bi bi-exclamation-triangle"></i> Tipos con faltante</div>
+            <div class="valor" th:text="${necesidad.tiposConFaltante}">0</div>
+            <div class="small text-muted">necesidad estimada &gt; disponible utilizable</div></div></div></div>
+        <div class="col-6 col-lg"><div class="card kpi" style="border-top-color: var(--ept-rojo)"><div class="card-body">
+            <div class="text-muted small"><i class="bi bi-cart-plus"></i> Unidades a reponer</div>
+            <div class="valor" th:text="${necesidad.unidadesReponer}">0</div>
+            <div class="small text-muted">suma de max(0, necesidad − disponible) · estimación</div></div></div></div>
+        <div class="col-6 col-lg"><div class="card kpi" style="border-top-color: var(--ept-ambar)"><div class="card-body">
+            <div class="text-muted small"><i class="bi bi-tools"></i> En revisión</div>
+            <div class="valor" th:text="${necesidad.unidadesEnRevision}">0</div>
+            <div class="small text-muted">mantenimiento + cuarentena + inspección · calculado</div></div></div></div>
+        <div class="col-12 col-lg"><div class="card kpi"><div class="card-body">
+            <div class="text-muted small"><i class="bi bi-archive"></i> De baja</div>
+            <div class="valor" th:text="${necesidad.unidadesBaja}">0</div>
+            <div class="small text-muted">informativo, no cuenta como stock · calculado</div></div></div></div>
+    </div>
+
+    <div class="card mb-3" th:if="${!necesidad.alertas.empty}"><div class="card-body">
+        <h2 class="h6">Alertas accionables</h2>
+        <ul class="list-unstyled mb-0">
+            <li th:each="a : ${necesidad.alertas}" class="mb-1">
+                <span class="estado" th:classappend="${'estado-' + a.nivel}"><i class="bi" th:classappend="${a.icono}" aria-hidden="true"></i>
+                    <span th:text="${a.nivel == 'critico' ? 'Crítico' : 'Atención'}">Atención</span></span>
+                <a th:href="@{${a.url}}" th:text="${a.texto}">texto</a>
+            </li>
+        </ul>
+    </div></div>
+
+    <div class="card mb-3"><div class="table-responsive">
+        <table class="table align-middle mb-0 tabla-fichas">
+            <thead><tr><th>EPP</th>
+                <th class="text-end" title="Calculado: personal cuya matriz lo exige como obligatorio">Personal</th>
+                <th class="text-end" title="Calculado: suma de cantidades que exige la matriz">Requeridas</th>
+                <th class="text-end" title="Calculado: min(en poder, requerida) de sus dotaciones vigentes">En poder</th>
+                <th class="text-end" title="Calculado: lo que aún falta entregar según la matriz">Pendiente</th>
+                <th class="text-end" th:title="'Estimación a ' + ${horizonte} + ' días: supone que se renuevan al vencer'">Renov. <span th:text="${horizonte}">30</span> d</th>
+                <th class="text-end" title="Estimación: pendiente + renovaciones">Necesidad</th>
+                <th class="text-end" title="Calculado: solo unidades en estado En almacén">Disponible</th>
+                <th class="text-end" title="Calculado: unidades asignadas (no cuentan como disponibles)">Asignadas</th>
+                <th class="text-end" title="Calculado: mantenimiento, inspección, autorización y cuarentena">En revisión</th>
+                <th class="text-end">Faltante</th><th class="text-end">Excedente</th>
+                <th class="col-reco">Recomendación</th></tr></thead>
+            <tbody>
+            <tr th:each="f : ${necesidad.filas}">
+                <td data-etiqueta="EPP"><span class="fw-semibold" th:text="${f.epp.nombre}"></span>
+                    <div class="text-muted small" th:text="${f.epp.categoria.nombre}"></div>
+                    <div th:if="${f.consumible}" class="small"><span class="estado estado-neutro"><i class="bi bi-box" aria-hidden="true"></i> Consumible: control por cantidad</span>
+                        <span class="text-muted" th:text="${f.controlLotes}"></span></div>
+                    <div th:if="${f.opcionales > 0}" class="small text-muted" th:text="${f.opcionales + ' trabajador(es) lo tienen como opcional (no cuenta)'}"></div></td>
+                <td class="text-end cod" data-etiqueta="Personal" th:text="${f.personal}"></td>
+                <td class="text-end cod" data-etiqueta="Requeridas" th:text="${f.requerida}"></td>
+                <td class="text-end cod" data-etiqueta="En poder" th:text="${f.enPoder}"></td>
+                <td class="text-end cod" data-etiqueta="Pendiente" th:text="${f.pendiente}"></td>
+                <td class="text-end cod" data-etiqueta="Renovaciones" th:text="${f.renovaciones}"></td>
+                <td class="text-end cod fw-semibold" data-etiqueta="Necesidad" th:text="${f.necesidad}"></td>
+                <td class="text-end cod fw-semibold" data-etiqueta="Disponible" th:text="${f.disponible}"></td>
+                <td class="text-end cod" data-etiqueta="Asignadas" th:text="${f.asignadas}"></td>
+                <td class="text-end cod" data-etiqueta="En revisión" th:text="${f.enRevision}"></td>
+                <td class="text-end cod fw-bold" data-etiqueta="Faltante" th:text="${f.faltante}"></td>
+                <td class="text-end cod" data-etiqueta="Excedente" th:text="${f.excedente}"></td>
+                <td data-etiqueta="Recomendación" class="col-reco">
+                    <span class="estado" th:classappend="${f.recomendacion.clase}"><i class="bi" th:classappend="${f.recomendacion.icono}" aria-hidden="true"></i><span th:text="${f.recomendacion.etiqueta}"></span></span>
+                    <div class="small mt-1" th:text="${f.motivo}"></div>
+                    <div class="small text-muted" th:if="${f.faltante > 0 && f.costoEstimado != null}"
+                         th:text="'Costo estimado de compra: S/ ' + ${#numbers.formatDecimal(f.costoEstimado, 1, 'COMMA', 2, 'POINT')}"></div>
+                    <div class="small text-muted" th:if="${f.faltante > 0 && f.sinCosto}">Sin costo unitario cargado</div></td>
+            </tr>
+            <tr th:if="${necesidad.filas.empty}"><td colspan="13" class="vacio"><i class="bi bi-inbox"></i>No hay EPP activos en el catálogo.</td></tr>
+            </tbody>
+        </table>
+    </div></div>
+    <p class="small text-muted" th:if="${necesidad.costoParcial.signum() > 0 || necesidad.tiposSinCosto > 0}">
+        Costo estimado de reposición: S/ <span th:text="${#numbers.formatDecimal(necesidad.costoParcial, 1, 'COMMA', 2, 'POINT')}">0.00</span>
+        solo con los EPP que tienen costo unitario cargado; <span th:text="${necesidad.tiposSinCosto}">0</span> tipo(s) con faltante no tienen costo y no están incluidos.</p>
+
+    <div class="row g-3">
+        <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+            <h2 class="h6"><i class="bi bi-calculator" aria-hidden="true"></i> Cómo se calcula</h2>
+            <ul class="small mb-0">
+                <li><strong>Personal y requeridas (calculado):</strong> trabajadores que laboran (activos o reincorporados) con actividad vigente cuya matriz exige el EPP como obligatorio. Cada trabajador cuenta una vez por EPP; si dos actividades lo piden se toma la mayor cantidad. Los opcionales se muestran aparte y no cuentan.</li>
+                <li><strong>En poder / pendiente (calculado):</strong> en poder = min(unidades vigentes, requeridas); pendiente = requeridas − en poder, por trabajador.</li>
+                <li><strong>Renovaciones (estimación a <span th:text="${horizonte}">30</span> días):</strong> unidades vigentes de personal que labora y vencen en la ventana. Supone que se renuevan al vencer. Los ya vencidos no se cuentan aquí: ya están en pendiente.</li>
+                <li><strong>Necesidad (estimación)</strong> = pendiente + renovaciones.</li>
+                <li><strong>Disponible (calculado)</strong> = solo unidades con código en estado «En almacén». Asignadas, en inspección, por autorizar, en mantenimiento, en cuarentena, de baja o consumidas no cuentan. Una unidad figura en un solo estado.</li>
+                <li><strong>Faltante</strong> = max(0, necesidad − disponible). <strong>Excedente</strong> = max(0, disponible − necesidad).</li>
+                <li><strong>Recuperables:</strong> las unidades en mantenimiento, inspección o por autorizar se informan, pero no se restan del faltante: su retorno depende de una decisión humana.</li>
+                <li><strong>Consumibles:</strong> control por cantidad, sin devoluciones; su stock es el saldo de sus lotes (sin lotes vencidos) y se descuenta por lote al entregar (primero vence, primero sale).</li>
+            </ul>
+        </div></div></div>
+        <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+            <h2 class="h6"><i class="bi bi-exclamation-diamond" aria-hidden="true"></i> Datos faltantes y límites</h2>
+            <ul class="small mb-0">
+                <li><strong>Tallas: dato faltante.</strong> EPPTrack aún no registra talla por trabajador ni por unidad; por eso no se calcula existencia por talla.</li>
+                <li>El stock con código no tiene sede: el filtro por sede solo acota al personal.</li>
+                <li>No se proyecta demanda futura (nuevas contrataciones, campaña): solo el personal y las vigencias que hoy constan en el sistema.</li>
+                <li>No se afirma ahorro: reponer menos por unidades recuperables solo sería posible tras la autorización humana de cada unidad.</li>
+                <li><span th:text="${necesidad.sinMatriz}">0</span> trabajador(es) que laboran no tienen ningún EPP obligatorio por matriz (sin actividad asignada o actividad sin matriz): no aportan necesidad.</li>
+                <li>El costo solo se calcula si el EPP tiene costo unitario cargado.</li>
+                <li>Las clases de EPP (desechable, reutilizable) pueden estar pendientes de validación por SST.</li>
+            </ul>
+        </div></div></div>
+    </div>
+</section>
+</body>
+</html>

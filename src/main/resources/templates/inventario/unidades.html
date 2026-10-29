@@ -12,7 +12,7 @@
         <div class="row g-2">
             <form class="col-md-4 d-flex gap-2" method="get" th:action="@{/inventario/unidades}">
                 <input class="form-control cod" name="codigo" placeholder="EPP-003-0001" aria-label="Código" required>
-                <button class="btn btn-primary"><i class="bi bi-search"></i></button>
+                <button class="btn btn-primary" aria-label="Buscar por código"><i class="bi bi-search"></i></button>
             </form>
             <form class="col-md-8 d-flex gap-2" method="get" th:action="@{/inventario/unidades}">
                 <select class="form-select" name="epp" data-autosubmit aria-label="EPP">

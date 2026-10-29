@@ -89,3 +89,12 @@ document.querySelectorAll('input[data-filtrar]').forEach(campo =>
             el.hidden = q !== '' && !normalizar(el.textContent).includes(q);
         });
     }));
+
+// Accesibilidad: asocia cada etiqueta .form-label con su control cuando la plantilla no lo hizo.
+let nCtl = 0;
+document.querySelectorAll('label.form-label:not([for])').forEach(l => {
+    const c = l.parentElement.querySelector('input:not([type=hidden]), select, textarea');
+    if (!c) return;
+    if (!c.id) c.id = 'ctl-' + (++nCtl);
+    l.htmlFor = c.id;
+});

@@ -157,15 +157,17 @@ class EppAuditoriaTest {
         assertThat(asignada.getCodigo()).isEqualTo(u.getCodigo());
 
         inventario.devolver(asignada.getCodigo(), CondicionEpp.REPARABLE, MotivoDevolucion.DETERIORO, null, "sup-test");
-        inventario.enviarAMantenimiento(asignada.getIdUnidad(), "sup-test");
-        inventario.cerrarMantenimiento(asignada.getIdUnidad(), true, "Listo", "sup-test");
+        // Regla nueva (pedida por el profesor): lo devuelto pasa por inspección antes de ir a mantenimiento.
+        inventario.registrarInspeccion(asignada.getIdUnidad(), ResultadoInspeccion.REQUIERE_MANTENIMIENTO, "Correa floja", "sup-test");
+        inventario.enviarAMantenimiento(asignada.getIdUnidad(), "Correa floja", null, "sup-test");
+        inventario.cerrarMantenimiento(asignada.getIdUnidad(), ResultadoMantenimiento.REPARADO, "Listo", null, null, "sup-test");
 
         assertThat(acciones("unidad_epp", asignada.getIdUnidad())).containsExactly("INVENTARIO_DEVOLUCION",
-                "INVENTARIO_MANTENIMIENTO_ENVIO", "INVENTARIO_MANTENIMIENTO_CIERRE");
+                "INVENTARIO_INSPECCION", "INVENTARIO_MANTENIMIENTO_ENVIO", "INVENTARIO_MANTENIMIENTO_CIERRE");
         List<RegistroAuditoria> r = de("unidad_epp", asignada.getIdUnidad());
         assertThat(r.getFirst().getDetalle()).contains(asignada.getCodigo()).contains("DETERIORO").contains("REPARABLE")
-                .contains("POR_MANTENIMIENTO");
-        assertThat(r.getLast().getDetalle()).contains("reparado y disponible");
+                .contains("POR_INSPECCION");
+        assertThat(r.getLast().getDetalle()).contains("REPARADO").contains("POR_AUTORIZAR");
         assertThat(r).extracting(RegistroAuditoria::getUsuario).containsOnly("sup-test");
         assertThat(auditoria.verificar().integra()).isTrue();
     }

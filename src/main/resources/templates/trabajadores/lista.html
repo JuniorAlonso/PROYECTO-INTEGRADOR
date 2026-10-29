@@ -54,7 +54,7 @@
                     <a class="btn btn-sm btn-outline-primary" title="Historial" aria-label="Ver historial"
                        th:href="@{/historial(dni=${t.dni})}"><i class="bi bi-clock-history"></i></a>
                     <a sec:authorize="hasAnyRole('ADMIN','RRHH')" class="btn btn-sm btn-outline-secondary"
-                       th:href="@{/trabajadores/{id}/editar(id=${t.idTrabajador})}"><i class="bi bi-pencil"></i></a>
+                       th:href="@{/trabajadores/{id}/editar(id=${t.idTrabajador})}" aria-label="Editar trabajador" title="Editar"><i class="bi bi-pencil"></i></a>
                 </td>
             </tr>
             <tr th:if="${#lists.isEmpty(trabajadores)}"><td colspan="7" class="vacio"><i class="bi bi-search"></i>No se encontraron trabajadores con esos filtros.</td></tr>
