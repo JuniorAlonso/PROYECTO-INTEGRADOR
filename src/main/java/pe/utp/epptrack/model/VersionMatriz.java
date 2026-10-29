@@ -41,8 +41,9 @@ public class VersionMatriz {
     private String huella;
 
     /** Una línea por regla: idActividad|idEpp|obligatorio|cantidad|actividad|epp, ordenadas. */
+    // Sin columnDefinition, Hibernate crea TINYTEXT en MySQL (255 caracteres) y la matriz no cabe.
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String contenido;
 
     public VersionMatriz() {}
