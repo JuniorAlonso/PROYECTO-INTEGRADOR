@@ -38,14 +38,14 @@
             <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/alertas')} ? active" th:href="@{/alertas}">
                 <i class="bi bi-bell"></i> Vigencia y alertas</a></li>
             <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/excepciones')} ? active" th:href="@{/excepciones}">
-                <i class="bi bi-flag"></i> Excepciones <span class="nuevo">Nuevo</span></a></li>
+                <i class="bi bi-flag"></i> Excepciones</a></li>
             <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/radar')} ? active" th:href="@{/radar}">
                 <i class="bi bi-graph-up-arrow"></i> Radar de reposición</a></li>
             <li class="nav-grupo" aria-hidden="true" sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')">Inventario</li>
             <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${rutaActual == '/inventario'} ? active" th:href="@{/inventario}">
                 <i class="bi bi-boxes"></i> Stock vs. personal</a></li>
             <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${rutaActual == '/inventario/necesidad'} ? active" th:href="@{/inventario/necesidad}">
-                <i class="bi bi-clipboard-data"></i> Necesidad de EPP <span class="nuevo">Nuevo</span></a></li>
+                <i class="bi bi-clipboard-data"></i> Necesidad de EPP</a></li>
             <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/inventario/unidad')} ? active" th:href="@{/inventario/unidades}">
                 <i class="bi bi-upc-scan"></i> Códigos de EPP</a></li>
             <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/inventario/devoluciones')} ? active" th:href="@{/inventario/devoluciones}">
@@ -64,6 +64,9 @@
                 <i class="bi bi-bar-chart-line"></i> Indicadores</a></li>
             <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/auditoria')} ? active" th:href="@{/auditoria}">
                 <i class="bi bi-shield-check"></i> Auditoría</a></li>
+            <li class="nav-grupo" aria-hidden="true" sec:authorize="hasRole('ADMIN')">Administración</li>
+            <li sec:authorize="hasRole('ADMIN')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/usuarios')} ? active" th:href="@{/usuarios}">
+                <i class="bi bi-person-gear"></i> Usuarios y roles</a></li>
         </ul>
       </div>
     </nav>
@@ -76,7 +79,7 @@
             <nav class="migas" aria-label="Ubicación" th:with="r=${rutaActual == null ? '/' : rutaActual}">
                 <span class="previa">EPPTrack</span><i class="bi bi-chevron-right previa" aria-hidden="true"></i>
                 <span class="actual" aria-current="page"
-                      th:text="${r == '/' ? 'Dashboard' : #strings.startsWith(r,'/trabajadores') ? 'Trabajadores' : #strings.startsWith(r,'/historial') ? 'Historial' : #strings.startsWith(r,'/entregas') ? 'Registro de entregas' : #strings.startsWith(r,'/alertas') ? 'Vigencia y alertas' : #strings.startsWith(r,'/radar') ? 'Radar de reposición' : #strings.startsWith(r,'/inventario/unidad') ? 'Códigos de EPP' : #strings.startsWith(r,'/inventario/devoluciones') ? 'Devoluciones' : #strings.startsWith(r,'/inventario/mantenimiento') ? 'Mantenimiento' : #strings.startsWith(r,'/inventario') ? 'Stock vs. personal' : #strings.startsWith(r,'/epp') ? 'Catálogo de EPP' : #strings.startsWith(r,'/matriz') ? 'Matriz de asignación' : #strings.startsWith(r,'/excepciones') ? 'Excepciones' : #strings.startsWith(r,'/indicadores') ? 'Indicadores' : #strings.startsWith(r,'/reportes') ? 'Reportes' : #strings.startsWith(r,'/auditoria') ? 'Auditoría' : 'EPPTrack'}">Dashboard</span>
+                      th:text="${r == '/' ? 'Dashboard' : #strings.startsWith(r,'/trabajadores') ? 'Trabajadores' : #strings.startsWith(r,'/historial') ? 'Historial' : #strings.startsWith(r,'/entregas') ? 'Registro de entregas' : #strings.startsWith(r,'/alertas') ? 'Vigencia y alertas' : #strings.startsWith(r,'/radar') ? 'Radar de reposición' : #strings.startsWith(r,'/inventario/unidad') ? 'Códigos de EPP' : #strings.startsWith(r,'/inventario/devoluciones') ? 'Devoluciones' : #strings.startsWith(r,'/inventario/mantenimiento') ? 'Mantenimiento' : #strings.startsWith(r,'/inventario') ? 'Stock vs. personal' : #strings.startsWith(r,'/epp') ? 'Catálogo de EPP' : #strings.startsWith(r,'/matriz') ? 'Matriz de asignación' : #strings.startsWith(r,'/excepciones') ? 'Excepciones' : #strings.startsWith(r,'/indicadores') ? 'Indicadores' : #strings.startsWith(r,'/reportes') ? 'Reportes' : #strings.startsWith(r,'/auditoria') ? 'Auditoría' : #strings.startsWith(r,'/usuarios') ? 'Usuarios y roles' : 'EPPTrack'}">Dashboard</span>
             </nav>
             <button type="button" class="btn btn-sm btn-outline-secondary paleta-boton d-none d-md-inline-flex" data-paleta-abrir aria-label="Buscar o ir a… (Ctrl+K)">
                 <i class="bi bi-search"></i> Buscar o ir a… <kbd>Ctrl K</kbd>

@@ -39,6 +39,7 @@ public class SecurityConfig {
         http
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/login", "/css/**", "/js/**", "/img/**", "/error").permitAll()
+                .requestMatchers("/usuarios/**").hasRole(ADMIN)
                 .requestMatchers(HttpMethod.POST, "/epp/**", "/matriz/**").hasRole(ADMIN)
                 .requestMatchers("/epp/nuevo", "/epp/*/editar").hasRole(ADMIN)
                 .requestMatchers(HttpMethod.POST, "/trabajadores/**").hasAnyRole(ADMIN, RRHH)
