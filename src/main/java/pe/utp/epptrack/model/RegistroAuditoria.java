@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 /**
- * Evento de la bitácora de auditoría (RF-13, RF-29). Cada registro guarda la huella SHA-256 del anterior,
+ * Evento de la bitácora de auditoría (RF-13, RF-28). Cada registro guarda la huella SHA-256 del anterior,
  * de modo que modificar o borrar un evento ya grabado rompe la cadena y la verificación lo detecta.
  * Solo se insertan filas: no hay operaciones de actualización ni borrado sobre esta tabla (RNF-03).
  */

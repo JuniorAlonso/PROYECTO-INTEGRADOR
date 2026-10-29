@@ -78,11 +78,11 @@ templates/        Vistas Thymeleaf (layout común en fragments/layout.html)
   cubierto, incompleto (cantidad), vencido o nunca entregado, con la regla aplicada y el porqué; calcula la
   **dotación neta** (solo lo que falta) y avisa en reincorporaciones que confirme lo que el trabajador conserva.
   Se ve en Historial y en Registro de entregas.
-- [x] **EPP no exigido por la matriz** (RN-06): entregarlo exige justificación; queda guardada.
+- [x] **EPP no exigido por la matriz** (RF-23, RN-06): entregarlo exige justificación; queda guardada.
 - [x] **Versionado de la matriz** (RF-21): Matriz → Publicar versión; cada entrega guarda la versión aplicada y la
   publicación muestra reglas agregadas/retiradas/modificadas y trabajadores afectados.
 - [x] **Posibles fichas duplicadas** (RF-27): mismo nombre (sin tildes) o mismos apellidos y fecha de nacimiento.
-- [x] **Bitácora de auditoría con huella SHA-256 encadenada** (RF-29): menú Auditoría; detecta alteraciones directas en la base.
+- [x] **Bitácora de auditoría con huella SHA-256 encadenada** (RF-28): menú Auditoría; detecta alteraciones directas en la base.
 - [x] **Exportación a Excel nativo (.xlsx) con Apache POI** (RF-12), con la huella de auditoría al pie.
 - Pruebas: `MotorDecisionesTest` (PR-01 a PR-13) y `MotorWebTest` (PR-14 a PR-17). Total: 82 pruebas.
 

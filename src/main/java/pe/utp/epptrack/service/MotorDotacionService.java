@@ -16,7 +16,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
- * Motor de dotación (RF-22, RF-24, RN-01, RN-06): decide qué le falta entregar a un trabajador y explica por qué.
+ * Motor de dotación (RF-22, RF-23, RF-24, RN-01, RN-06): decide qué le falta entregar a un trabajador y explica por qué.
  * <p>
  * Entradas: actividades vigentes del trabajador, reglas de la matriz para esas actividades, entregas en uso
  * y vencidas, periodo laboral actual, versión de la matriz y posibles fichas duplicadas.

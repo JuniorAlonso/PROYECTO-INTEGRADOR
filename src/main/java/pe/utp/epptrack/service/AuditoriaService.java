@@ -14,7 +14,7 @@ import java.util.HexFormat;
 import java.util.List;
 
 /**
- * Bitácora de auditoría con huella encadenada (RF-13, RF-29, RN-05).
+ * Bitácora de auditoría con huella encadenada (RF-13, RF-28, RN-05).
  * <p>
  * Cómo funciona: la huella de cada evento es SHA-256(huella anterior | fecha | usuario | acción | entidad | id | detalle).
  * Si alguien cambia o borra una fila directamente en la base de datos, al recalcular la cadena la huella

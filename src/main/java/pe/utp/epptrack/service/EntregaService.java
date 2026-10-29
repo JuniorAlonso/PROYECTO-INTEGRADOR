@@ -87,7 +87,7 @@ public class EntregaService {
 
     /**
      * Ids de los EPP seleccionados que la matriz NO exige para las actividades del trabajador y no traen
-     * justificación (RN-06). Entregar algo no exigido no está prohibido, pero debe quedar el porqué: así se
+     * justificación (RF-23, RN-06). Entregar algo no exigido no está prohibido, pero debe quedar el porqué: así se
      * detectan asignaciones equivocadas antes de confirmarlas. Un EPP desactivado se ignora aquí (se rechaza luego).
      */
     @Transactional(readOnly = true)

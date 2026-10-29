@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import pe.utp.epptrack.service.AuditoriaService;
 
-/** Bitácora de auditoría con verificación de integridad de la cadena de huellas (RF-13, RF-29). */
+/** Bitácora de auditoría con verificación de integridad de la cadena de huellas (RF-13, RF-28). */
 @Controller
 @RequestMapping("/auditoria")
 public class AuditoriaController {
