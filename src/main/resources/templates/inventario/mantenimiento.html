@@ -26,9 +26,10 @@
 
     <div class="alert alert-light border small">
         <strong>Cómo decide el sistema al recibir una devolución:</strong>
-        inservible → baja · descartable (vida útil ≤ <span th:text="${diasDescartable}">30</span> días) → baja ·
-        reparable con menos de <span th:text="${maxReparaciones}">3</span> reparaciones → <strong>apto para mantenimiento</strong> ·
-        en buen estado pero con vida útil cumplida → inspección en mantenimiento · en buen estado y vigente → vuelve al almacén.
+        solo se devuelven los EPP cuya política lo permite (los desechables se consumen y no se devuelven) ·
+        inservible → baja · reparable con menos de <span th:text="${maxReparaciones}">3</span> reparaciones → <strong>apto para mantenimiento</strong> ·
+        los de uso individual pasan siempre por inspección antes de volver a asignarse · en buen estado, compartido y vigente → vuelve al almacén.
+        <span class="text-muted">Estas reglas son de partida y están pendientes de validación por SST.</span>
     </div>
 
     <div class="card mb-3"><div class="card-body pb-0"><h2 class="h6">Aptos para mantenimiento</h2></div><div class="table-responsive">

@@ -112,11 +112,15 @@ public class DotacionService {
         Map<Integer, DetalleEntrega> enUsoPorEpp = enUso.stream()
                 .collect(Collectors.toMap(d -> d.getEpp().getIdEpp(), d -> d,
                         (a, b) -> a.getFechaRenovacion().isAfter(b.getFechaRenovacion()) ? a : b));
+        // Varias entregas parciales vigentes del mismo EPP suman: la dotación se mide por unidades, no por registros.
+        Map<Integer, Integer> unidadesEnPoder = enUso.stream()
+                .collect(Collectors.groupingBy(d -> d.getEpp().getIdEpp(), Collectors.summingInt(DetalleEntrega::getCantidad)));
 
         List<ItemDotacion> items = porEpp.values().stream()
                 .map(r -> {
                     Integer idEpp = r.getEpp().getIdEpp();
-                    return new ItemDotacion(r.getEpp(), cantidad.get(idEpp), obligatorio.get(idEpp), enUsoPorEpp.get(idEpp));
+                    return new ItemDotacion(r.getEpp(), cantidad.get(idEpp), obligatorio.get(idEpp), enUsoPorEpp.get(idEpp),
+                            unidadesEnPoder.getOrDefault(idEpp, 0));
                 })
                 .sorted(Comparator.comparing((ItemDotacion i) -> i.epp().getCategoria().getNombre())
                         .thenComparing(i -> i.epp().getNombre()))

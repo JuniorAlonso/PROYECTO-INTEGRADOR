@@ -8,7 +8,7 @@
     <p class="subtitulo">Todo lo que recibió un trabajador en cada campaña. Busca por DNI o nombre; los registros nunca se borran.</p>
 
     <form class="row g-2 mb-4" method="get" th:action="@{/historial}">
-        <div class="col-md-5"><input class="form-control" name="q" th:value="${q}" maxlength="100" placeholder="DNI o apellidos y nombres" autofocus></div>
+        <div class="col-md-5"><input class="form-control" aria-label="DNI o nombre del trabajador" name="q" th:value="${q}" maxlength="100" placeholder="DNI o apellidos y nombres" autofocus></div>
         <div class="col-md-2"><button class="btn btn-primary w-100"><i class="bi bi-search"></i> Buscar</button></div>
     </form>
 
@@ -133,11 +133,11 @@
         <!-- Cese -->
         <div class="modal fade" id="modalCese" tabindex="-1"><div class="modal-dialog"><form class="modal-content" method="post"
              th:action="@{/trabajadores/{id}/cese(id=${trabajador.idTrabajador})}">
-            <div class="modal-header"><h5 class="modal-title">Registrar cese</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-header"><h5 class="modal-title">Registrar cese</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
             <div class="modal-body">
                 <p class="small text-muted">Se cierra la campaña actual. El historial de EPP se conserva para un futuro reingreso.</p>
                 <label class="form-label">Fecha de cese</label>
-                <input class="form-control" type="date" name="fechaCese" th:value="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
+                <input class="form-control" type="date" aria-label="Fecha de cese" name="fechaCese" th:value="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
             </div>
             <div class="modal-footer"><button class="btn btn-danger">Registrar cese</button></div>
         </form></div></div>
@@ -145,18 +145,18 @@
         <!-- Reingreso -->
         <div class="modal fade" id="modalReingreso" tabindex="-1"><div class="modal-dialog"><form class="modal-content" method="post"
              th:action="@{/trabajadores/{id}/reingreso(id=${trabajador.idTrabajador})}">
-            <div class="modal-header"><h5 class="modal-title">Registrar reingreso</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-header"><h5 class="modal-title">Registrar reingreso</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
             <div class="modal-body">
                 <label class="form-label">Campaña</label>
-                <input class="form-control mb-2" name="campana" required placeholder="Ej. Arándano 2026-27">
+                <input class="form-control mb-2" aria-label="Campaña" name="campana" required placeholder="Ej. Arándano 2026-27">
                 <label class="form-label">Fecha de reingreso</label>
-                <input class="form-control mb-2" type="date" name="fechaIngreso" required th:value="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
+                <input class="form-control mb-2" type="date" aria-label="Fecha de ingreso" name="fechaIngreso" required th:value="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
                 <label class="form-label">Sede</label>
-                <select class="form-select mb-2" name="idSede">
+                <select class="form-select mb-2" aria-label="Sede" name="idSede">
                     <option th:each="s : ${sedes}" th:value="${s.idSede}" th:text="${s.nombre}" th:selected="${s.idSede == trabajador.sede.idSede}"></option>
                 </select>
                 <label class="form-label">Actividad</label>
-                <select class="form-select" name="idActividad">
+                <select class="form-select" aria-label="Actividad" name="idActividad">
                     <option value="">Sin actividad</option>
                     <option th:each="a : ${actividades}" th:value="${a.idActividad}" th:text="${a.proceso.nombre} + ' · ' + ${a.nombre}"></option>
                 </select>
@@ -166,11 +166,11 @@
 
         <!-- Anular detalle -->
         <div class="modal fade" id="modalAnular" tabindex="-1"><div class="modal-dialog"><form class="modal-content" method="post" id="formAnular" th:data-base="@{/entregas/detalle/}">
-            <div class="modal-header"><h5 class="modal-title">Anular registro de entrega</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-header"><h5 class="modal-title">Anular registro de entrega</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
             <div class="modal-body">
                 <p class="small text-muted">El registro no se borra: queda anulado y la corrección se audita (RN-05).</p>
                 <label class="form-label">Motivo de la anulación</label>
-                <input class="form-control" name="motivo" required maxlength="500">
+                <input class="form-control" aria-label="Motivo de la anulación" name="motivo" required maxlength="500">
             </div>
             <div class="modal-footer"><button class="btn btn-danger">Anular</button></div>
         </form></div></div>

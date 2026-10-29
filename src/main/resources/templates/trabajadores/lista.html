@@ -12,16 +12,16 @@
     </div>
 
     <form class="row g-2 mb-3" method="get">
-        <div class="col-md-4"><input class="form-control" name="q" th:value="${q}" placeholder="Buscar por DNI o nombre"></div>
+        <div class="col-md-4"><input class="form-control" aria-label="Buscar por DNI o nombre" name="q" th:value="${q}" placeholder="Buscar por DNI o nombre"></div>
         <div class="col-md-3">
-            <select class="form-select" name="sede" data-autosubmit>
+            <select class="form-select" aria-label="Filtrar por sede" name="sede" data-autosubmit>
                 <option value="">Todas las sedes</option>
                 <option th:each="s : ${sedes}" th:value="${s.idSede}" th:text="${s.nombre}"
                         th:selected="${s.idSede == sedeSeleccionada}"></option>
             </select>
         </div>
         <div class="col-md-3">
-            <select class="form-select" name="estado" data-autosubmit>
+            <select class="form-select" aria-label="Filtrar por estado" name="estado" data-autosubmit>
                 <option value="">Todos los estados</option>
                 <option th:each="e : ${estados}" th:value="${e}" th:text="${e.etiqueta}"
                         th:selected="${e == estadoSeleccionado}"></option>

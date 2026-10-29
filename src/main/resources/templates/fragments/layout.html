@@ -37,6 +37,8 @@
                 <i class="bi bi-box-seam"></i> Registro de entregas</a></li>
             <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/alertas')} ? active" th:href="@{/alertas}">
                 <i class="bi bi-bell"></i> Vigencia y alertas</a></li>
+            <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/excepciones')} ? active" th:href="@{/excepciones}">
+                <i class="bi bi-flag"></i> Excepciones <span class="nuevo">Nuevo</span></a></li>
             <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/radar')} ? active" th:href="@{/radar}">
                 <i class="bi bi-graph-up-arrow"></i> Radar de reposición</a></li>
             <li class="nav-grupo" aria-hidden="true" sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')">Inventario</li>
@@ -56,6 +58,8 @@
             <li class="nav-grupo" aria-hidden="true">Informes</li>
             <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/reportes')} ? active" th:href="@{/reportes}">
                 <i class="bi bi-file-earmark-text"></i> Reportes</a></li>
+            <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/indicadores')} ? active" th:href="@{/indicadores}">
+                <i class="bi bi-bar-chart-line"></i> Indicadores</a></li>
             <li sec:authorize="hasAnyRole('ADMIN','SUPERVISOR')"><a class="nav-link" th:classappend="${#strings.startsWith(rutaActual, '/auditoria')} ? active" th:href="@{/auditoria}">
                 <i class="bi bi-shield-check"></i> Auditoría</a></li>
         </ul>
@@ -63,22 +67,27 @@
     </nav>
 
     <div class="flex-grow-1 contenido">
-        <header class="bg-white border-bottom px-3 px-lg-4 py-2 d-flex justify-content-between justify-content-lg-end align-items-center gap-3">
+        <header class="border-bottom px-3 px-lg-4 py-2 d-flex align-items-center gap-3">
             <button class="btn btn-outline-secondary btn-sm d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#menu" aria-controls="menu" aria-label="Abrir menú">
                 <i class="bi bi-list"></i>
             </button>
+            <nav class="migas" aria-label="Ubicación" th:with="r=${rutaActual == null ? '/' : rutaActual}">
+                <span class="previa">EPPTrack</span><i class="bi bi-chevron-right previa" aria-hidden="true"></i>
+                <span class="actual" aria-current="page"
+                      th:text="${r == '/' ? 'Dashboard' : #strings.startsWith(r,'/trabajadores') ? 'Trabajadores' : #strings.startsWith(r,'/historial') ? 'Historial' : #strings.startsWith(r,'/entregas') ? 'Registro de entregas' : #strings.startsWith(r,'/alertas') ? 'Vigencia y alertas' : #strings.startsWith(r,'/radar') ? 'Radar de reposición' : #strings.startsWith(r,'/inventario/unidad') ? 'Códigos de EPP' : #strings.startsWith(r,'/inventario/devoluciones') ? 'Devoluciones' : #strings.startsWith(r,'/inventario/mantenimiento') ? 'Mantenimiento' : #strings.startsWith(r,'/inventario') ? 'Stock vs. personal' : #strings.startsWith(r,'/epp') ? 'Catálogo de EPP' : #strings.startsWith(r,'/matriz') ? 'Matriz de asignación' : #strings.startsWith(r,'/excepciones') ? 'Excepciones' : #strings.startsWith(r,'/indicadores') ? 'Indicadores' : #strings.startsWith(r,'/reportes') ? 'Reportes' : #strings.startsWith(r,'/auditoria') ? 'Auditoría' : 'EPPTrack'}">Dashboard</span>
+            </nav>
             <button type="button" class="btn btn-sm btn-outline-secondary paleta-boton d-none d-md-inline-flex" data-paleta-abrir aria-label="Buscar o ir a… (Ctrl+K)">
                 <i class="bi bi-search"></i> Buscar o ir a… <kbd>Ctrl K</kbd>
             </button>
             <button type="button" class="btn btn-sm btn-outline-secondary d-md-none" data-paleta-abrir aria-label="Buscar o ir a"><i class="bi bi-search"></i></button>
             <button type="button" class="btn btn-sm btn-outline-secondary" id="tema-boton" aria-label="Cambiar a modo oscuro" title="Cambiar tema"><i class="bi bi-moon-stars"></i></button>
-            <span class="text-muted small">
+            <span class="usuario">
                 <span class="avatar avatar-sm" aria-hidden="true" th:text="${#strings.toUpperCase(#strings.substring(#authentication.name,0,1))}">A</span>
-                <span sec:authentication="name">usuario</span>
-                (<span sec:authorize="hasRole('ADMIN')">Administrador</span><span sec:authorize="hasRole('SUPERVISOR')">Supervisor</span><span sec:authorize="hasRole('RRHH')">Recursos Humanos</span>)
+                <span class="textos"><span class="nombre" sec:authentication="name">usuario</span>
+                <span class="rol"><span sec:authorize="hasRole('ADMIN')">Administrador</span><span sec:authorize="hasRole('SUPERVISOR')">Supervisor</span><span sec:authorize="hasRole('RRHH')">Recursos Humanos</span></span></span>
             </span>
             <form th:action="@{/logout}" method="post">
-                <button class="btn btn-sm btn-outline-secondary">Salir</button>
+                <button class="btn btn-sm btn-outline-secondary" aria-label="Cerrar sesión" title="Cerrar sesión"><i class="bi bi-box-arrow-right"></i> <span class="d-none d-sm-inline">Salir</span></button>
             </form>
         </header>
         <main class="p-3 p-lg-4" id="contenido" tabindex="-1">

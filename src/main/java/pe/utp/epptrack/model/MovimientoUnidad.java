@@ -30,6 +30,11 @@ public class MovimientoUnidad {
     @Column(length = 20)
     private CondicionEpp condicion;
 
+    /** Motivo de la devolución; solo se llena en movimientos de tipo DEVOLUCION. */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private MotivoDevolucion motivo;
+
     @Column(length = 500)
     private String observacion;
 
@@ -56,6 +61,8 @@ public class MovimientoUnidad {
     public TipoMovimientoUnidad getTipo() { return tipo; }
     public Trabajador getTrabajador() { return trabajador; }
     public CondicionEpp getCondicion() { return condicion; }
+    public MotivoDevolucion getMotivo() { return motivo; }
+    public void setMotivo(MotivoDevolucion motivo) { this.motivo = motivo; }
     public String getObservacion() { return observacion; }
     public String getUsuario() { return usuario; }
     public LocalDateTime getFecha() { return fecha; }

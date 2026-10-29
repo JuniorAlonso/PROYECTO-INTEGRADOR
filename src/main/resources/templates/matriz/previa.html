@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Impacto de la matriz · EPPTrack</title></head>
+<body>
+<section>
+    <h1 class="h4 mb-1">Impacto antes de publicar la matriz</h1>
+    <p class="subtitulo">Vista previa de solo lectura (RF-21): compara la matriz de trabajo con la versión vigente.
+        No crea versiones ni modifica reglas.</p>
+
+    <div th:unless="${previa.hayCambios}" class="card mb-3"><div class="card-body vacio" id="sin-cambios">
+        <i class="bi bi-check-circle"></i>
+        <p th:if="${previa.vigente != null}" th:text="'La matriz de trabajo es igual a la versión ' + ${previa.vigente.codigo} + '. No hay nada que publicar.'"></p>
+        <p th:if="${previa.vigente == null}">La matriz no tiene reglas; no hay nada que publicar.</p>
+    </div></div>
+
+    <th:block th:if="${previa.hayCambios}">
+        <div class="card mb-3" id="resumen-impacto"><div class="card-body">
+            <h2 class="h6"><i class="bi bi-clipboard-data"></i> Resumen de impacto</h2>
+            <ul class="mb-0 small">
+                <li th:if="${previa.vigente != null}">Base de comparación: versión <strong th:text="${previa.vigente.codigo}"></strong>
+                    (<span th:text="${previa.vigente.totalReglas}"></span> reglas) frente a <span th:text="${previa.reglasActuales}"></span> reglas actuales.</li>
+                <li th:text="${#lists.size(previa.agregadas)} + ' reglas agregadas, ' + ${#lists.size(previa.modificadas)} + ' modificadas y ' + ${#lists.size(previa.retiradas)} + ' retiradas.'"></li>
+                <li th:if="${previa.vigente != null}" th:text="${previa.actividadesAfectadas} + ' actividades afectadas; ' + ${#lists.size(previa.trabajadoresAfectados)} + ' trabajadores activos afectados, de los cuales ' + ${previa.conDotacionIncompleta} + ' tienen hoy la dotación incompleta.'"></li>
+            </ul>
+        </div></div>
+
+        <th:block th:replace="~{matriz/cambios :: tabla('Reglas agregadas', ${previa.agregadas}, 'bi-plus-circle', 'success', 'Agregada')}"></th:block>
+        <th:block th:replace="~{matriz/cambios :: tabla('Reglas modificadas', ${previa.modificadas}, 'bi-pencil-square', 'warning', 'Modificada')}"></th:block>
+        <th:block th:replace="~{matriz/cambios :: tabla('Reglas retiradas', ${previa.retiradas}, 'bi-dash-circle', 'danger', 'Retirada')}"></th:block>
+
+        <div class="card mb-3" th:unless="${#lists.isEmpty(previa.trabajadoresAfectados)}"><div class="card-body">
+            <h2 class="h6"><i class="bi bi-people"></i> Trabajadores activos afectados</h2>
+            <ul class="mb-0 small">
+                <li th:each="t : ${previa.trabajadoresAfectados}"><a th:href="@{/historial(dni=${t.dni})}" th:text="${t.nombreCompleto}"></a></li>
+            </ul>
+        </div></div>
+    </th:block>
+
+    <div class="card mb-3" id="no-evaluable"><div class="card-body">
+        <h2 class="h6"><i class="bi bi-question-circle"></i> No evaluable</h2>
+        <ul class="mb-0 small">
+            <li th:each="x : ${previa.noEvaluable}" th:text="${x}"></li>
+        </ul>
+    </div></div>
+
+    <div class="d-flex flex-wrap gap-2 align-items-end">
+        <a class="btn btn-outline-secondary" th:href="@{/matriz}"><i class="bi bi-arrow-left"></i> Cancelar y volver</a>
+        <form sec:authorize="hasRole('ADMIN')" th:if="${previa.hayCambios}" class="d-flex flex-wrap gap-2 align-items-end"
+              method="post" th:action="@{/matriz/publicar}">
+            <div><label class="form-label small mb-0" for="codigo">Código</label>
+                <input class="form-control form-control-sm" id="codigo" name="codigo" maxlength="20" placeholder="v7" required style="width:6rem"></div>
+            <div><label class="form-label small mb-0" for="descripcion">Descripción del cambio</label>
+                <input class="form-control form-control-sm" id="descripcion" name="descripcion" maxlength="300" placeholder="Aprobada por SST el …"></div>
+            <div class="form-check mb-1">
+                <input class="form-check-input" type="checkbox" id="confirmo" name="confirmo" required>
+                <label class="form-check-label small" for="confirmo">Confirmo la publicación</label>
+            </div>
+            <button class="btn btn-primary"><i class="bi bi-upload"></i> Publicar esta versión</button>
+        </form>
+    </div>
+</section>
+</body>
+</html>

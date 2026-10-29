@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Tabla de cambios de la matriz: icono + texto + color, para no depender solo del color. -->
+<div th:fragment="tabla(titulo, items, icono, color, etiqueta)" th:if="${!#lists.isEmpty(items)}" class="card mb-3">
+    <div class="card-body pb-0">
+        <h2 class="h6"><i class="bi" th:classappend="${icono}"></i> <span th:text="${titulo}"></span>
+            <span class="badge" th:classappend="'text-bg-' + ${color}" th:text="${#lists.size(items)}"></span></h2>
+    </div>
+    <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+        <thead class="table-light"><tr><th style="width:9rem">Cambio</th><th>Regla</th></tr></thead>
+        <tbody><tr th:each="x : ${items}">
+            <td><span class="badge" th:classappend="'text-bg-' + ${color}"><i class="bi" th:classappend="${icono}"></i> <span th:text="${etiqueta}"></span></span></td>
+            <td th:text="${x}"></td>
+        </tr></tbody>
+    </table></div>
+</div>
+</body>
+</html>

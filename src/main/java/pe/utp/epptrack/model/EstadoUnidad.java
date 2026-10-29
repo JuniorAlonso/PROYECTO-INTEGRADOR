@@ -6,7 +6,8 @@ public enum EstadoUnidad {
     ASIGNADO("Asignado a trabajador", "primary"),
     POR_MANTENIMIENTO("Apto para mantenimiento", "warning"),
     EN_MANTENIMIENTO("En mantenimiento", "info"),
-    DE_BAJA("De baja", "secondary");
+    DE_BAJA("De baja", "secondary"),
+    CONSUMIDO("Consumido (desechable)", "secondary");
 
     private final String etiqueta;
     private final String color;

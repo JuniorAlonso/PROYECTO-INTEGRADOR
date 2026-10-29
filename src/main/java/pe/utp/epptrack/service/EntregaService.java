@@ -71,38 +71,95 @@ public class EntregaService {
                         (a, b) -> a.getFechaRenovacion().isAfter(b.getFechaRenovacion()) ? a : b));
     }
 
+    /** Qué hace el sistema con una línea de la entrega y por qué (RF-07, RN-06, RN-08). */
+    public enum Decision {
+        /** Falta ese EPP y se entrega como máximo lo que falta. */
+        NORMAL,
+        /** Ya tiene parte de lo exigido y se entrega, como máximo, la diferencia: se suma, no reemplaza. */
+        COMPLEMENTO,
+        /** Ya tiene vigente todo lo exigido (o algo que la matriz no exige): requiere justificación. */
+        DUPLICADO,
+        /** La matriz no exige este EPP para la actividad del trabajador: requiere justificación. */
+        NO_EXIGIDO,
+        /** Se entrega más de lo que falta según la matriz: requiere justificación. */
+        EXCESO
+    }
+
+    /** Resultado de evaluar un EPP marcado en el formulario frente a la matriz y a lo que el trabajador ya tiene. */
+    public record Linea(Integer idEpp, Decision decision, int requerida, int enPoder, int pendiente, int cantidad,
+                        boolean enMatriz) {
+        public boolean requiereJustificacion() { return decision != Decision.NORMAL && decision != Decision.COMPLEMENTO; }
+    }
+
     /**
-     * Ids de los EPP seleccionados que el trabajador ya tiene vigentes y no traen justificación.
-     * Si la lista no está vacía la entrega no se registra hasta que el usuario justifique cada uno (RF-07).
+     * Evalúa cada EPP seleccionado: compara lo exigido por la matriz, lo que el trabajador tiene vigente (suma de
+     * todas sus entregas vigentes) y lo que se quiere entregar. La interfaz solo muestra este resultado; la regla
+     * se aplica aquí, en el servidor.
      */
     @Transactional(readOnly = true)
+    public List<Linea> evaluarLineas(EntregaForm form) {
+        if (form.getIdTrabajador() == null) return List.of();
+        Trabajador t = trabajadorRepository.findById(form.getIdTrabajador()).orElse(null);
+        if (t == null) return List.of();
+        Map<Integer, pe.utp.epptrack.dto.ItemDotacion> deMatriz = new java.util.HashMap<>();
+        dotacionService.estadoDotacion(t).items().forEach(i -> deMatriz.put(i.epp().getIdEpp(), i));
+        Map<Integer, Integer> vigentes = detalleRepository
+                .findByEntregaTrabajadorIdTrabajadorAndEstadoVigenciaIn(t.getIdTrabajador(), EN_USO).stream()
+                .collect(Collectors.groupingBy(d -> d.getEpp().getIdEpp(), Collectors.summingInt(DetalleEntrega::getCantidad)));
+        List<Linea> lineas = new java.util.ArrayList<>();
+        for (ItemEntregaForm i : form.getSeleccionados()) {
+            if (i.getIdEpp() == null) continue;
+            var regla = deMatriz.get(i.getIdEpp());
+            boolean enMatriz = regla != null;
+            int requerida = enMatriz ? regla.cantidadRequerida() : 0;
+            int enPoder = vigentes.getOrDefault(i.getIdEpp(), 0);
+            int pendiente = Math.max(0, requerida - enPoder);
+            int cantidad = i.getCantidad() == null ? 0 : i.getCantidad();
+            Decision d;
+            if (!enMatriz) {
+                d = enPoder > 0 ? Decision.DUPLICADO : Decision.NO_EXIGIDO;
+            } else if (enPoder >= requerida) {
+                d = Decision.DUPLICADO;
+            } else if (cantidad > pendiente) {
+                d = Decision.EXCESO;
+            } else {
+                d = enPoder > 0 ? Decision.COMPLEMENTO : Decision.NORMAL;
+            }
+            lineas.add(new Linea(i.getIdEpp(), d, requerida, enPoder, pendiente, cantidad, enMatriz));
+        }
+        return lineas;
+    }
+
+    private List<Integer> sinJustificar(EntregaForm form, java.util.function.Predicate<Linea> filtro) {
+        Map<Integer, ItemEntregaForm> items = form.getSeleccionados().stream()
+                .filter(i -> i.getIdEpp() != null)
+                .collect(Collectors.toMap(ItemEntregaForm::getIdEpp, Function.identity(), (x, y) -> x));
+        return evaluarLineas(form).stream().filter(filtro)
+                .filter(l -> items.get(l.idEpp()).getJustificacion() == null
+                        || items.get(l.idEpp()).getJustificacion().isBlank())
+                .map(Linea::idEpp).toList();
+    }
+
+    /** Ids de los EPP que el trabajador ya tiene cubiertos y se quieren entregar de nuevo sin justificar (RF-07). */
+    @Transactional(readOnly = true)
     public List<Integer> duplicadosSinJustificar(EntregaForm form) {
-        Map<Integer, DetalleEntrega> enUso = enUsoPorEpp(form.getIdTrabajador());
-        return form.getSeleccionados().stream()
-                .filter(i -> enUso.containsKey(i.getIdEpp()))
-                .filter(i -> i.getJustificacion() == null || i.getJustificacion().isBlank())
-                .map(ItemEntregaForm::getIdEpp)
-                .toList();
+        return sinJustificar(form, l -> l.enPoder() > 0 && l.decision() == Decision.DUPLICADO);
     }
 
     /**
      * Ids de los EPP seleccionados que la matriz NO exige para las actividades del trabajador y no traen
-     * justificación (RF-23, RN-06). Entregar algo no exigido no está prohibido, pero debe quedar el porqué: así se
-     * detectan asignaciones equivocadas antes de confirmarlas. Un EPP desactivado se ignora aquí (se rechaza luego).
+     * justificación (RF-23, RN-06). Un EPP desactivado se ignora aquí (se rechaza luego).
      */
     @Transactional(readOnly = true)
     public List<Integer> noExigidosSinJustificar(EntregaForm form) {
-        if (form.getIdTrabajador() == null) return List.of();
-        Trabajador t = trabajadorRepository.findById(form.getIdTrabajador()).orElse(null);
-        if (t == null) return List.of();
-        java.util.Set<Integer> exigidos = dotacionService.estadoDotacion(t).items().stream()
-                .map(i -> i.epp().getIdEpp()).collect(Collectors.toSet());
-        return form.getSeleccionados().stream()
-                .filter(i -> !exigidos.contains(i.getIdEpp()))
-                .filter(i -> eppRepository.findById(i.getIdEpp()).map(Epp::isActivo).orElse(false))
-                .filter(i -> i.getJustificacion() == null || i.getJustificacion().isBlank())
-                .map(ItemEntregaForm::getIdEpp)
-                .toList();
+        return sinJustificar(form, l -> !l.enMatriz()).stream()
+                .filter(id -> eppRepository.findById(id).map(Epp::isActivo).orElse(false)).toList();
+    }
+
+    /** Ids de los EPP cuya cantidad supera lo que falta según la matriz y no traen justificación (RN-08). */
+    @Transactional(readOnly = true)
+    public List<Integer> excesosSinJustificar(EntregaForm form) {
+        return sinJustificar(form, l -> l.decision() == Decision.EXCESO);
     }
 
     /** Detalle de entrega por id, para anular o mostrar. */
@@ -149,8 +206,13 @@ public class EntregaService {
             throw new ReglaNegocioException("Hay EPP que la matriz no exige para la actividad del trabajador; "
                     + "escriba la justificación de cada uno (RN-06).");
         }
-        java.util.Set<Integer> exigidos = dotacionService.estadoDotacion(trabajador).items().stream()
-                .map(i -> i.epp().getIdEpp()).collect(Collectors.toSet());
+        if (!excesosSinJustificar(form).isEmpty()) {
+            throw new ReglaNegocioException("Hay EPP cuya cantidad supera lo que falta según la matriz; "
+                    + "ajuste la cantidad o escriba la justificación del exceso (RN-08).");
+        }
+        // Cada línea queda evaluada antes de tocar nada: la decisión se toma con el estado previo a esta entrega.
+        Map<Integer, Linea> lineas = evaluarLineas(form).stream()
+                .collect(Collectors.toMap(Linea::idEpp, Function.identity(), (a, b) -> a));
         periodoRepository.findByTrabajadorIdTrabajadorAndFechaCeseIsNull(trabajador.getIdTrabajador()).stream()
                 .map(PeriodoLaboral::getFechaIngreso).min(java.time.LocalDate::compareTo)
                 .filter(ingreso -> form.getFechaEntrega().isBefore(ingreso)).ifPresent(ingreso -> {
@@ -171,6 +233,10 @@ public class EntregaService {
         StringBuilder resumen = new StringBuilder("DNI " + trabajador.getDni() + "; motivo " + form.getMotivo()
                 + "; fecha " + form.getFechaEntrega() + "; matriz " + entrega.getVersionMatriz() + "; EPP:");
 
+        // Los bloqueos de inventario se toman por adelantado y siempre en orden de EPP (así dos entregas simultáneas
+        // no se interbloquean); después se procesa en el orden del formulario.
+        seleccionados.stream().map(ItemEntregaForm::getIdEpp).sorted().distinct()
+                .forEach(id -> eppRepository.findByIdParaActualizar(id));
         for (ItemEntregaForm item : seleccionados) {
             Epp epp = eppRepository.findById(item.getIdEpp())
                     .orElseThrow(() -> new RecursoNoEncontradoException("EPP no encontrado."));
@@ -180,11 +246,19 @@ public class EntregaService {
             DetalleEntrega detalle = new DetalleEntrega(epp, item.getCantidad(),
                     form.getFechaEntrega().plusDays(epp.getVidaUtilDias()));
             detalle.setEstadoVigencia(vigenciaService.calcular(detalle.getFechaRenovacion()));
+            Linea linea = lineas.get(epp.getIdEpp());
+            detalle.setCantidadExigida(linea == null ? null : linea.requerida());
+            boolean complemento = linea != null && linea.decision() == Decision.COMPLEMENTO;
+            boolean exceso = linea != null && linea.decision() == Decision.EXCESO;
 
             boolean duplicado = false;
-            // El equipo anterior (vigente o vencido) queda reemplazado por el nuevo.
+            // El equipo anterior (vigente o vencido) queda reemplazado por el nuevo. Un complemento NO reemplaza lo
+            // que sigue vigente: se suma a ello para llegar a la cantidad exigida.
             for (DetalleEntrega anterior : detalleRepository.findByEntregaTrabajadorIdTrabajadorAndEppIdEppAndEstadoVigenciaIn(
                     trabajador.getIdTrabajador(), epp.getIdEpp(), REEMPLAZABLES)) {
+                if ((complemento || exceso) && anterior.getEstadoVigencia().isEnUso()) {
+                    continue;
+                }
                 duplicado |= anterior.getEstadoVigencia().isEnUso();
                 anterior.setEstadoVigencia(EstadoVigencia.RENOVADO);
                 historialRepository.save(new HistorialEpp(trabajador, anterior, HistorialEpp.RENOVADO,
@@ -193,13 +267,18 @@ public class EntregaService {
             if (duplicado) {
                 detalle.setJustificacionDuplicado(item.getJustificacion().trim());
             }
-            boolean noExigido = !exigidos.contains(epp.getIdEpp());
+            boolean noExigido = linea != null && !linea.enMatriz();
             if (noExigido) {
                 detalle.setJustificacionNoExigido(item.getJustificacion().trim());
+            }
+            if (exceso) {
+                detalle.setJustificacionExceso(item.getJustificacion().trim());
             }
             resumen.append(" ").append(epp.getNombre()).append(" x").append(item.getCantidad())
                     .append(duplicado ? " [duplicado justificado: " + item.getJustificacion().trim() + "]" : "")
                     .append(noExigido ? " [no exigido por la matriz: " + item.getJustificacion().trim() + "]" : "")
+                    .append(exceso ? " [exceso justificado: " + item.getJustificacion().trim() + "]" : "")
+                    .append(complemento ? " [complemento de entrega parcial]" : "")
                     .append(";");
             entrega.agregarDetalle(detalle);
             detalleRepository.save(detalle);

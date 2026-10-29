@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Indicadores · EPPTrack</title></head>
+<body>
+<section>
+    <h1 class="h4 mb-1">Indicadores verificables</h1>
+    <p class="subtitulo">Cada cifra se calcula con los datos registrados y muestra cómo se obtuvo. Periodo de entregas:
+        <span th:text="${#temporals.format(panel.desde, 'dd/MM/yyyy')} + ' al ' + ${#temporals.format(panel.hasta, 'dd/MM/yyyy')}"></span>.</p>
+    <div class="alert alert-secondary small" id="nota-demo">Los datos de demostración son ficticios. Estos indicadores no son una comparación con el pretest del informe.</div>
+
+    <form class="d-flex gap-2 align-items-end mb-3" method="get" th:action="@{/indicadores}">
+        <div><label class="form-label small" for="dias">Periodo (días)</label>
+            <input class="form-control" type="number" id="dias" name="dias" min="1" max="3650" th:value="${dias}"></div>
+        <button class="btn btn-primary">Actualizar</button>
+    </form>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-xl-4" th:each="i : ${panel.indicadores}">
+            <div class="card kpi h-100 p-3">
+                <div class="text-muted" th:text="${i.nombre}"></div>
+                <div class="valor" th:if="${i.suficiente and i.unidad == '%'}" th:text="${#numbers.formatDecimal(i.valor, 1, 1)} + ' %'"></div>
+                <div class="valor" th:if="${i.suficiente and i.unidad != '%'}" th:text="${#numbers.formatDecimal(i.valor, 1, 0)}"></div>
+                <div class="valor fs-5" th:unless="${i.suficiente}">Datos insuficientes</div>
+                <div class="small" th:if="${i.denominador != null}"
+                     th:text="'Numerador ' + ${i.numerador} + ' · Denominador ' + ${i.denominador}"></div>
+                <div class="small" th:if="${i.denominador == null}" th:text="'Conteo: ' + ${i.numerador}"></div>
+                <p class="def"><strong>Fórmula:</strong> <span th:text="${i.formula}"></span></p>
+                <p class="def"><strong>Fuente:</strong> <span th:text="${i.fuente}"></span></p>
+                <p class="def"><strong>Periodo:</strong> <span th:text="${i.periodo}"></span></p>
+                <p class="def"><strong>Nota:</strong> <span th:text="${i.nota}"></span></p>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-4">
+            <div class="card kpi h-100 p-3">
+                <div class="text-muted">Tiempo de operación</div>
+                <div class="valor fs-5">No medido</div>
+                <p class="def">El sistema no registra cuánto tarda cada operación, por lo que no se muestra ninguna cifra.
+                    Medirlo requeriría registrar tiempos de inicio y fin en cada flujo.</p>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="h5">Evolución mensual (últimos 6 meses)</h2>
+    <p class="text-muted" th:unless="${panel.evolucionSuficiente}">Datos insuficientes para mostrar evolución</p>
+    <div class="card" th:if="${panel.evolucionSuficiente}"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+        <thead class="table-light"><tr><th>Mes</th><th>Líneas de entrega</th><th>Con excepción</th><th>% conforme</th></tr></thead>
+        <tbody>
+        <tr th:each="m : ${panel.evolucion}">
+            <td th:text="${#temporals.format(m.mes.atDay(1), 'MM/yyyy')}"></td>
+            <td th:text="${m.entregas > 0} ? ${m.entregas} : '—'"></td>
+            <td th:text="${m.entregas > 0} ? ${m.conExcepcion} : '—'"></td>
+            <td th:text="${m.porcentajeConforme != null} ? ${#numbers.formatDecimal(m.porcentajeConforme, 1, 1)} + ' %' : '—'"></td>
+        </tr>
+        </tbody>
+    </table></div></div>
+    <p class="small text-muted mt-2">Conforme = línea de entrega no anulada sin justificación de no exigido, duplicado ni exceso.</p>
+</section>
+</body>
+</html>

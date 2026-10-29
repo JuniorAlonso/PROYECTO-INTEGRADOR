@@ -93,13 +93,12 @@ public class InventarioInitializer implements CommandLineRunner {
         }
 
         // Devoluciones de ejemplo de los EPP renovados que siguen en poder del trabajador.
-        List<UnidadEpp> pendientes = inventarioService.pendientesDevolucion().stream()
-                .filter(u -> !InventarioService.isDescartable(u.getEpp()))
-                .toList();
+        List<UnidadEpp> pendientes = inventarioService.pendientesDevolucion();
         CondicionEpp[] condiciones = {CondicionEpp.REPARABLE, CondicionEpp.REPARABLE, CondicionEpp.BUENO,
                 CondicionEpp.INSERVIBLE, CondicionEpp.REPARABLE};
         for (int i = 0; i < Math.min(condiciones.length, pendientes.size()); i++) {
-            inventarioService.devolver(pendientes.get(i).getCodigo(), condiciones[i], "Devolución por renovación", USUARIO);
+            inventarioService.devolver(pendientes.get(i).getCodigo(), condiciones[i],
+                    pe.utp.epptrack.model.MotivoDevolucion.REEMPLAZO, "Devolución de demostración", USUARIO);
         }
         List<UnidadEpp> aptos = inventarioService.enEstado(EstadoUnidad.POR_MANTENIMIENTO);
         if (!aptos.isEmpty()) {

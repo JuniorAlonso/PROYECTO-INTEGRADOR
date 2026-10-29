@@ -46,13 +46,26 @@ public class MatrizVersionService {
         public int getTotalCambios() { return agregadas.size() + retiradas.size() + modificadas.size(); }
     }
 
+    /** Qué cambiaría al publicar hoy la matriz de trabajo. */
+    public record VistaPrevia(VersionMatriz vigente, int reglasActuales, boolean hayCambios, List<String> agregadas,
+                              List<String> retiradas, List<String> modificadas, int actividadesAfectadas,
+                              List<Trabajador> trabajadoresAfectados, long conDotacionIncompleta, List<String> noEvaluable) {
+        public int getTotalCambios() { return agregadas.size() + retiradas.size() + modificadas.size(); }
+    }
+
+    /** Diferencias de una versión frente a la anterior. */
+    public record Comparacion(VersionMatriz version, VersionMatriz anterior, List<String> agregadas,
+                              List<String> retiradas, List<String> modificadas) {}
+
+    private final DotacionService dotacionService;
     private final VersionMatrizRepository versionRepository;
     private final MatrizAsignacionRepository matrizRepository;
     private final AsignacionActividadRepository asignacionRepository;
     private final AuditoriaService auditoriaService;
 
     public MatrizVersionService(VersionMatrizRepository versionRepository, MatrizAsignacionRepository matrizRepository,
-                                AsignacionActividadRepository asignacionRepository, AuditoriaService auditoriaService) {
+                                AsignacionActividadRepository asignacionRepository, AuditoriaService auditoriaService, DotacionService dotacionService) {
+        this.dotacionService = dotacionService;
         this.versionRepository = versionRepository;
         this.matrizRepository = matrizRepository;
         this.asignacionRepository = asignacionRepository;
@@ -113,9 +126,36 @@ public class MatrizVersionService {
             throw new ReglaNegocioException("La matriz no cambió desde la versión " + anterior.get().getCodigo() + ".");
         }
 
-        Map<String, String> antes = anterior.map(v -> porClave(Arrays.asList(v.getContenido().split("\n"))))
-                .orElse(Map.of());
-        Map<String, String> ahora = porClave(actual);
+        Diferencias dif = diferencias(anterior.map(VersionMatriz::getContenido).orElse(null), actual);
+        List<String> agregadas = dif.agregadas(), retiradas = dif.retiradas(), modificadas = dif.modificadas();
+        Set<Integer> actividades = dif.actividades();
+
+        anterior.ifPresent(v -> v.setVigente(false));
+        String desc = descripcion == null || descripcion.isBlank() ? null : descripcion.trim();
+        if (desc != null && desc.length() > 300) desc = desc.substring(0, 300);
+        VersionMatriz nueva = versionRepository.save(
+                new VersionMatriz(cod, desc, usuario, actual.size(), huella, String.join("\n", actual)));
+
+        List<Trabajador> afectados = anterior.isEmpty() ? List.of() : trabajadoresDe(actividades);
+
+        auditoriaService.registrar(usuario, "MATRIZ_PUBLICADA", "version_matriz", nueva.getIdVersion(),
+                "Versión " + cod + " (" + actual.size() + " reglas, huella " + nueva.getHuellaCorta() + ")"
+                        + anterior.map(v -> " reemplaza a " + v.getCodigo()).orElse("")
+                        + "; agregadas=" + agregadas.size() + ", retiradas=" + retiradas.size()
+                        + ", modificadas=" + modificadas.size() + ", trabajadores afectados=" + afectados.size());
+        return new Impacto(nueva, anterior.map(VersionMatriz::getCodigo).orElse(null), agregadas, retiradas,
+                modificadas, anterior.isEmpty() ? 0 : actividades.size(), afectados);
+    }
+
+    /** Diferencias entre dos listas de reglas canónicas (compartido por publicar, vista previa y comparación). */
+    private record Diferencias(List<String> agregadas, List<String> retiradas, List<String> modificadas,
+                               Set<Integer> actividades) {
+        boolean vacia() { return agregadas.isEmpty() && retiradas.isEmpty() && modificadas.isEmpty(); }
+    }
+
+    private static Diferencias diferencias(String contenidoAntes, List<String> ahoraLineas) {
+        Map<String, String> antes = contenidoAntes == null ? Map.of() : porClave(Arrays.asList(contenidoAntes.split("\\n")));
+        Map<String, String> ahora = porClave(ahoraLineas);
         List<String> agregadas = new ArrayList<>(), retiradas = new ArrayList<>(), modificadas = new ArrayList<>();
         Set<Integer> actividades = new HashSet<>();
         ahora.forEach((clave, linea) -> {
@@ -131,28 +171,53 @@ public class MatrizVersionService {
                 actividades.add(idActividad(clave));
             }
         });
+        return new Diferencias(agregadas, retiradas, modificadas, actividades);
+    }
 
-        anterior.ifPresent(v -> v.setVigente(false));
-        String desc = descripcion == null || descripcion.isBlank() ? null : descripcion.trim();
-        if (desc != null && desc.length() > 300) desc = desc.substring(0, 300);
-        VersionMatriz nueva = versionRepository.save(
-                new VersionMatriz(cod, desc, usuario, actual.size(), huella, String.join("\n", actual)));
-
-        List<Trabajador> afectados = anterior.isEmpty() ? List.of() : asignacionRepository.findByFechaFinIsNull().stream()
+    /** Trabajadores que siguen laborando y tienen asignada alguna de las actividades indicadas. */
+    private List<Trabajador> trabajadoresDe(Set<Integer> actividades) {
+        return asignacionRepository.findByFechaFinIsNull().stream()
                 .filter(a -> actividades.contains(a.getActividad().getIdActividad()))
                 .map(AsignacionActividad::getTrabajador)
                 .filter(t -> t.getEstado().isLaborando())
                 .distinct()
                 .sorted(Comparator.comparing(Trabajador::getNombreCompleto))
                 .toList();
+    }
 
-        auditoriaService.registrar(usuario, "MATRIZ_PUBLICADA", "version_matriz", nueva.getIdVersion(),
-                "Versión " + cod + " (" + actual.size() + " reglas, huella " + nueva.getHuellaCorta() + ")"
-                        + anterior.map(v -> " reemplaza a " + v.getCodigo()).orElse("")
-                        + "; agregadas=" + agregadas.size() + ", retiradas=" + retiradas.size()
-                        + ", modificadas=" + modificadas.size() + ", trabajadores afectados=" + afectados.size());
-        return new Impacto(nueva, anterior.map(VersionMatriz::getCodigo).orElse(null), agregadas, retiradas,
-                modificadas, anterior.isEmpty() ? 0 : actividades.size(), afectados);
+    /**
+     * Vista previa del impacto de publicar la matriz de trabajo (RF-21, RN-07). No crea versiones ni modifica datos.
+     * Lo que no puede calcularse se declara en {@code noEvaluable} en lugar de inventarse.
+     */
+    @Transactional(readOnly = true)
+    public VistaPrevia vistaPrevia() {
+        VersionMatriz vigente = vigente().orElse(null);
+        List<String> actual = lineasActuales();
+        Diferencias dif = diferencias(vigente == null ? null : vigente.getContenido(), actual);
+        List<Trabajador> afectados = vigente == null ? List.of() : trabajadoresDe(dif.actividades());
+        Set<Integer> ids = afectados.stream().map(Trabajador::getIdTrabajador).collect(Collectors.toSet());
+        long incompletos = ids.isEmpty() ? 0 : dotacionService.estadoDotacionTodos(null).stream()
+                .filter(e -> ids.contains(e.trabajador().getIdTrabajador()) && !e.isCompleta()).count();
+        List<String> noEvaluable = new ArrayList<>();
+        if (vigente == null) noEvaluable.add("Sin versión publicada previa: no hay base de comparación; no se puede calcular qué trabajadores cambian.");
+        noEvaluable.add("Las entregas históricas no se recalculan: conservan la cantidad exigida de su fecha.");
+        noEvaluable.add("La dotación incompleta se mide con la matriz de trabajo actual, que ya es la que usa el motor en vivo.");
+        noEvaluable.add("No se estima costo ni stock de la reposición.");
+        boolean hayCambios = vigente == null ? !actual.isEmpty() : !dif.vacia() || !vigente.getHuella().equals(huella(actual));
+        return new VistaPrevia(vigente, actual.size(), hayCambios, dif.agregadas(), dif.retiradas(), dif.modificadas(),
+                vigente == null ? 0 : dif.actividades().size(), afectados, incompletos, noEvaluable);
+    }
+
+    /** Diferencias entre una versión y la inmediatamente anterior (null si es la primera). */
+    @Transactional(readOnly = true)
+    public Comparacion comparar(Integer idVersion) {
+        VersionMatriz v = versionRepository.findById(idVersion)
+                .orElseThrow(() -> new RecursoNoEncontradoException("La versión de la matriz no existe."));
+        VersionMatriz previa = versionRepository.findAllByOrderByIdVersionDesc().stream()
+                .filter(x -> x.getIdVersion() < v.getIdVersion()).findFirst().orElse(null);
+        Diferencias dif = diferencias(previa == null ? null : previa.getContenido(),
+                Arrays.stream(v.getContenido().split("\\n")).filter(l -> !l.isBlank()).toList());
+        return new Comparacion(v, previa, dif.agregadas(), dif.retiradas(), dif.modificadas());
     }
 
     /** Reglas actuales en forma canónica: una línea por regla, ordenada, para comparar y calcular la huella. */

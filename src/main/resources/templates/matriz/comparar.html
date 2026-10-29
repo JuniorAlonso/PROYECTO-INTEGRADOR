@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Versión de la matriz · EPPTrack</title></head>
+<body>
+<section>
+    <h1 class="h4 mb-1" th:text="'Versión ' + ${comparacion.version.codigo}"></h1>
+    <p class="subtitulo">
+        Publicada el <span th:text="${#temporals.format(comparacion.version.fechaPublicacion, 'dd/MM/yyyy HH:mm')}"></span>
+        por <span th:text="${comparacion.version.publicadaPor}"></span> ·
+        <span th:text="${comparacion.version.totalReglas}"></span> reglas · huella <code th:text="${comparacion.version.huellaCorta}"></code>
+        <span th:if="${comparacion.version.descripcion != null}" th:text="' · ' + ${comparacion.version.descripcion}"></span>
+    </p>
+
+    <div th:if="${comparacion.anterior == null}" class="alert alert-info small">
+        Es la primera versión publicada: no hay una versión anterior con la cual comparar.
+    </div>
+    <th:block th:if="${comparacion.anterior != null}">
+        <p class="small" th:text="'Cambios frente a la versión ' + ${comparacion.anterior.codigo} + ':'"></p>
+        <div th:if="${#lists.isEmpty(comparacion.agregadas) and #lists.isEmpty(comparacion.modificadas) and #lists.isEmpty(comparacion.retiradas)}"
+             class="card mb-3"><div class="card-body vacio"><i class="bi bi-check-circle"></i><p>Esta versión no difiere de la anterior.</p></div></div>
+        <th:block th:replace="~{matriz/cambios :: tabla('Reglas agregadas', ${comparacion.agregadas}, 'bi-plus-circle', 'success', 'Agregada')}"></th:block>
+        <th:block th:replace="~{matriz/cambios :: tabla('Reglas modificadas', ${comparacion.modificadas}, 'bi-pencil-square', 'warning', 'Modificada')}"></th:block>
+        <th:block th:replace="~{matriz/cambios :: tabla('Reglas retiradas', ${comparacion.retiradas}, 'bi-dash-circle', 'danger', 'Retirada')}"></th:block>
+    </th:block>
+    <a class="btn btn-outline-secondary" th:href="@{/matriz}"><i class="bi bi-arrow-left"></i> Volver a la matriz</a>
+</section>
+</body>
+</html>

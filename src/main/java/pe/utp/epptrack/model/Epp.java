@@ -46,6 +46,20 @@ public class Epp {
     @Column(nullable = false, length = 20)
     private String estado = ACTIVO;
 
+    /** Clase del EPP; {@code null} en registros anteriores a la clasificación (se trata como reutilizable individual). */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private ClaseEpp clase;
+
+    /** {@code true} solo cuando SST confirmó la clase y la política de devolución de este EPP. */
+    private Boolean claseValidada;
+
+    /** Sobrescribe la política de la clase: ¿se puede devolver? {@code null} = usar la de la clase. */
+    private Boolean devolucionPermitida;
+
+    /** Sobrescribe la política de la clase: ¿debe inspeccionarse al devolverlo? {@code null} = usar la de la clase. */
+    private Boolean inspeccionAlDevolver;
+
     public Epp() {}
 
     public Epp(CategoriaEpp categoria, String nombre, String descripcion, int vidaUtilDias) {
@@ -56,6 +70,22 @@ public class Epp {
     }
 
     public boolean isActivo() { return ACTIVO.equals(estado); }
+
+    /** Clase efectiva: la conservadora (reutilizable individual, con inspección) si nunca se clasificó. */
+    public ClaseEpp getClaseEfectiva() { return clase == null ? ClaseEpp.REUTILIZABLE_INDIVIDUAL : clase; }
+
+    public boolean isDesechable() { return getClaseEfectiva() == ClaseEpp.DESECHABLE; }
+
+    public boolean isPermiteDevolucion() {
+        return devolucionPermitida != null ? devolucionPermitida : getClaseEfectiva().isDevolucionPorDefecto();
+    }
+
+    public boolean isRequiereInspeccionAlDevolver() {
+        return inspeccionAlDevolver != null ? inspeccionAlDevolver : getClaseEfectiva().isInspeccionPorDefecto();
+    }
+
+    /** La política de este EPP todavía no fue confirmada por SST: ninguna regla de devolución es oficial. */
+    public boolean isClasePendienteValidacion() { return !Boolean.TRUE.equals(claseValidada); }
 
     public Integer getIdEpp() { return idEpp; }
     public void setIdEpp(Integer idEpp) { this.idEpp = idEpp; }
@@ -69,6 +99,14 @@ public class Epp {
     public void setVidaUtilDias(Integer vidaUtilDias) { this.vidaUtilDias = vidaUtilDias; }
     public java.math.BigDecimal getCostoUnitario() { return costoUnitario; }
     public void setCostoUnitario(java.math.BigDecimal costoUnitario) { this.costoUnitario = costoUnitario; }
+    public ClaseEpp getClase() { return clase; }
+    public void setClase(ClaseEpp clase) { this.clase = clase; }
+    public Boolean getClaseValidada() { return claseValidada; }
+    public void setClaseValidada(Boolean claseValidada) { this.claseValidada = claseValidada; }
+    public Boolean getDevolucionPermitida() { return devolucionPermitida; }
+    public void setDevolucionPermitida(Boolean devolucionPermitida) { this.devolucionPermitida = devolucionPermitida; }
+    public Boolean getInspeccionAlDevolver() { return inspeccionAlDevolver; }
+    public void setInspeccionAlDevolver(Boolean inspeccionAlDevolver) { this.inspeccionAlDevolver = inspeccionAlDevolver; }
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
 }

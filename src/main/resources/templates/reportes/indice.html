@@ -12,9 +12,9 @@
         <div class="col-lg-6"><form class="card h-100" method="get" th:action="@{/reportes/R01}"><div class="card-body">
             <div class="d-flex gap-3 mb-3"><span class="icono-reporte"><i class="bi bi-people"></i></span><div><div class="cod text-muted">R-01</div><h2 class="h6 mb-1">Cumplimiento de dotación por trabajador</h2><p class="small text-muted mb-0">Quién tiene todos sus EPP y quién no, trabajador por trabajador.</p></div></div>
             <div class="row g-2 mb-3">
-                <div class="col"><select class="form-select" name="sede"><option value="">Todas las sedes</option>
+                <div class="col"><select class="form-select" aria-label="Sede" name="sede"><option value="">Todas las sedes</option>
                     <option th:each="s : ${sedes}" th:value="${s.idSede}" th:text="${s.nombre}"></option></select></div>
-                <div class="col"><select class="form-select" name="estado"><option value="">Todos</option>
+                <div class="col"><select class="form-select" aria-label="Estado" name="estado"><option value="">Todos</option>
                     <option value="COMPLETA">Completa</option><option value="INCOMPLETA">Incompleta</option></select></div>
             </div>
             <button class="btn btn-primary">Generar reporte <i class="bi bi-arrow-right"></i></button>
@@ -23,7 +23,7 @@
         <div class="col-lg-6"><form class="card h-100" method="get" th:action="@{/reportes/R02}"><div class="card-body">
             <div class="d-flex gap-3 mb-3"><span class="icono-reporte"><i class="bi bi-bar-chart-line"></i></span><div><div class="cod text-muted">R-02</div><h2 class="h6 mb-1">Cumplimiento de dotación por sede</h2><p class="small text-muted mb-0">Porcentaje de cumplimiento de cada sede frente a la meta.</p></div></div>
             <div class="row g-2 mb-3">
-                <div class="col"><select class="form-select" name="sede"><option value="">Todas las sedes</option>
+                <div class="col"><select class="form-select" aria-label="Sede" name="sede"><option value="">Todas las sedes</option>
                     <option th:each="s : ${sedes}" th:value="${s.idSede}" th:text="${s.nombre}"></option></select></div>
             </div>
             <button class="btn btn-primary">Generar reporte <i class="bi bi-arrow-right"></i></button>
@@ -32,11 +32,11 @@
         <div class="col-lg-6"><form class="card h-100" method="get" th:action="@{/reportes/R03}"><div class="card-body">
             <div class="d-flex gap-3 mb-3"><span class="icono-reporte"><i class="bi bi-calendar-check"></i></span><div><div class="cod text-muted">R-03</div><h2 class="h6 mb-1">Vigencias y renovaciones de EPP</h2><p class="small text-muted mb-0">Qué EPP hay que renovar en los próximos días.</p></div></div>
             <div class="row g-2 mb-3">
-                <div class="col"><select class="form-select" name="sede"><option value="">Todas las sedes</option>
+                <div class="col"><select class="form-select" aria-label="Sede" name="sede"><option value="">Todas las sedes</option>
                     <option th:each="s : ${sedes}" th:value="${s.idSede}" th:text="${s.nombre}"></option></select></div>
-                <div class="col"><select class="form-select" name="categoria"><option value="">Todas las categorías</option>
+                <div class="col"><select class="form-select" aria-label="Categoría" name="categoria"><option value="">Todas las categorías</option>
                     <option th:each="c : ${categorias}" th:value="${c.idCategoria}" th:text="${c.nombre}"></option></select></div>
-                <div class="col-3"><input class="form-control" type="number" name="dias" value="30" min="0" max="3650" title="Días"></div>
+                <div class="col-3"><input class="form-control" type="number" aria-label="Horizonte en días" name="dias" value="30" min="0" max="3650" title="Días"></div>
             </div>
             <button class="btn btn-primary">Generar reporte <i class="bi bi-arrow-right"></i></button>
         </div></form></div>

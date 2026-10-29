@@ -77,7 +77,8 @@ public class DataInitializer implements CommandLineRunner {
         if (rolRepository.count() > 0) {
             return;
         }
-        log.info("Base de datos vacía: cargando datos de demostración de EPPTrack");
+        log.warn("Base vacía: se cargan DATOS DE DEMOSTRACIÓN con usuarios de contraseña conocida. "
+                + "No usar en producción: ponga DATOS_DEMO=false.");
         cargarUsuarios();
         cargarCatalogo();
         cargarMatriz();
@@ -238,8 +239,14 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void epp(String clave, CategoriaEpp categoria, String nombre, String descripcion, int vidaUtilDias) {
-        epps.put(clave, eppRepository.save(new Epp(categoria, nombre, descripcion, vidaUtilDias)));
+        Epp epp = new Epp(categoria, nombre, descripcion, vidaUtilDias);
+        // Clasificación de DEMOSTRACIÓN: ninguna está validada por SST (claseValidada = false) ni es política de CASURSA.
+        epp.setClase(DESECHABLES_DEMO.contains(clave) ? ClaseEpp.DESECHABLE : ClaseEpp.REUTILIZABLE_INDIVIDUAL);
+        epp.setClaseValidada(false);
+        epps.put(clave, eppRepository.save(epp));
     }
+
+    private static final java.util.Set<String> DESECHABLES_DEMO = java.util.Set.of("n95", "cartuchos", "bloqueador", "nitrilo");
 
     private void actividad(String clave, String nombreProceso, String nombreActividad, String... claveEpps) {
         Proceso proceso = procesoRepository.findByNombre(nombreProceso)

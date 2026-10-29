@@ -78,6 +78,7 @@ public class InventarioController {
     public String devoluciones(@RequestParam(required = false) String codigo, Model model) {
         model.addAttribute("codigo", codigo);
         model.addAttribute("condiciones", List.of(CondicionEpp.BUENO, CondicionEpp.REPARABLE, CondicionEpp.INSERVIBLE));
+        model.addAttribute("motivos", pe.utp.epptrack.model.MotivoDevolucion.values());
         model.addAttribute("pendientes", inventarioService.pendientesDevolucion());
         model.addAttribute("devueltos", inventarioService.ultimasDevoluciones());
         return "inventario/devoluciones";
@@ -85,9 +86,10 @@ public class InventarioController {
 
     @PostMapping("/devoluciones")
     public String devolver(@RequestParam(required = false) String codigo, @RequestParam(required = false) CondicionEpp condicion,
+                           @RequestParam(required = false) pe.utp.epptrack.model.MotivoDevolucion motivo,
                            @RequestParam(required = false) String observacion, Authentication auth, RedirectAttributes flash) {
         try {
-            UnidadEpp unidad = inventarioService.devolver(codigo, condicion, observacion, auth.getName());
+            UnidadEpp unidad = inventarioService.devolver(codigo, condicion, motivo, observacion, auth.getName());
             flash.addFlashAttribute("exito", "Devolución registrada: " + unidad.getCodigo() + " → "
                     + unidad.getEstado().getEtiqueta() + ".");
         } catch (ReglaNegocioException e) {
@@ -105,7 +107,6 @@ public class InventarioController {
         model.addAttribute("ahorroPotencial", resumen.ahorroPotencial());
         model.addAttribute("ahorroLogrado", resumen.ahorroLogrado());
         model.addAttribute("maxReparaciones", UnidadEpp.MAX_REPARACIONES);
-        model.addAttribute("diasDescartable", InventarioService.DIAS_DESCARTABLE);
         return "inventario/mantenimiento";
     }
 

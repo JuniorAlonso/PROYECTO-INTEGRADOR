@@ -1,14 +1,12 @@
 package pe.utp.epptrack.controller;
 
 import org.springframework.stereotype.Controller;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import pe.utp.epptrack.model.Actividad;
 import pe.utp.epptrack.model.Epp;
-import pe.utp.epptrack.model.MatrizAsignacion;
-import pe.utp.epptrack.model.Proceso;
+import pe.utp.epptrack.service.MatrizEdicionService;
 import pe.utp.epptrack.service.MatrizVersionService;
 import pe.utp.epptrack.service.RecursoNoEncontradoException;
 import pe.utp.epptrack.service.ReglaNegocioException;
@@ -33,10 +31,12 @@ public class MatrizController {
     private final ProcesoRepository procesoRepository;
     private final EppRepository eppRepository;
     private final MatrizVersionService versionService;
+    private final MatrizEdicionService edicionService;
 
     public MatrizController(MatrizAsignacionRepository matrizRepository, ActividadRepository actividadRepository,
                             ProcesoRepository procesoRepository, EppRepository eppRepository,
-                            MatrizVersionService versionService) {
+                            MatrizVersionService versionService, MatrizEdicionService edicionService) {
+        this.edicionService = edicionService;
         this.versionService = versionService;
         this.matrizRepository = matrizRepository;
         this.actividadRepository = actividadRepository;
@@ -70,20 +70,29 @@ public class MatrizController {
     public String agregarRegla(@RequestParam Integer idActividad, @RequestParam Integer idEpp,
                                @RequestParam(defaultValue = "1") Integer cantidad,
                                @RequestParam(defaultValue = "false") boolean obligatorio,
-                               RedirectAttributes flash) {
-        Actividad actividad = actividadRepository.findById(idActividad)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Actividad no encontrada."));
-        Epp epp = eppRepository.findById(idEpp)
-                .orElseThrow(() -> new RecursoNoEncontradoException("EPP no encontrado."));
-        if (matrizRepository.existsByActividadIdActividadAndEppIdEpp(idActividad, idEpp)) {
-            flash.addFlashAttribute("error", "Ese EPP ya está en la matriz para esta actividad.");
-        } else if (!epp.isActivo()) {
-            flash.addFlashAttribute("error", "El EPP está desactivado en el catálogo; actívelo antes de asignarlo.");
-        } else {
-            matrizRepository.save(new MatrizAsignacion(actividad, epp, obligatorio, Math.min(99, Math.max(1, cantidad))));
-            flash.addFlashAttribute("exito", epp.getNombre() + " agregado a " + actividad.getNombre() + ".");
+                               Authentication auth, RedirectAttributes flash) {
+        try {
+            flash.addFlashAttribute("exito", edicionService.agregarRegla(idActividad, idEpp, cantidad, obligatorio, auth.getName()));
+        } catch (RecursoNoEncontradoException e) {
+            throw e;
+        } catch (ReglaNegocioException e) {
+            flash.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/matriz?actividad=" + idActividad;
+    }
+
+    /** Vista previa del impacto de publicar, sin crear versiones ni modificar nada (RF-21). */
+    @GetMapping("/previa")
+    public String previa(Model model) {
+        model.addAttribute("previa", versionService.vistaPrevia());
+        return "matriz/previa";
+    }
+
+    /** Diferencias de una versión publicada frente a la anterior. */
+    @GetMapping("/versiones/{id}")
+    public String comparar(@PathVariable Integer id, Model model) {
+        model.addAttribute("comparacion", versionService.comparar(id));
+        return "matriz/comparar";
     }
 
     /** Publica la matriz de trabajo como versión oficial y muestra a quién afecta el cambio (RF-21). */
@@ -102,30 +111,22 @@ public class MatrizController {
     }
 
     @PostMapping("/{id}/quitar")
-    public String quitarRegla(@PathVariable Integer id, RedirectAttributes flash) {
-        MatrizAsignacion regla = matrizRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("La regla de la matriz no existe."));
-        Integer idActividad = regla.getActividad().getIdActividad();
-        matrizRepository.delete(regla);
-        flash.addFlashAttribute("exito", regla.getEpp().getNombre() + " retirado de la matriz.");
-        return "redirect:/matriz?actividad=" + idActividad;
+    public String quitarRegla(@PathVariable Integer id, Authentication auth, RedirectAttributes flash) {
+        MatrizEdicionService.RetiroRegla retiro = edicionService.quitarRegla(id, auth.getName());
+        flash.addFlashAttribute("exito", retiro.mensaje());
+        return "redirect:/matriz?actividad=" + retiro.idActividad();
     }
 
     @PostMapping("/actividades")
-    @Transactional
-    public String agregarActividad(@RequestParam String proceso, @RequestParam String nombre, RedirectAttributes flash) {
-        if (proceso.isBlank() || nombre.isBlank()) {
-            flash.addFlashAttribute("error", "Indique el proceso y el nombre de la actividad.");
+    public String agregarActividad(@RequestParam String proceso, @RequestParam String nombre,
+                                   Authentication auth, RedirectAttributes flash) {
+        try {
+            Integer id = edicionService.agregarActividad(proceso, nombre, auth.getName());
+            flash.addFlashAttribute("exito", "Actividad creada. Agregue los EPP que exige.");
+            return "redirect:/matriz?actividad=" + id;
+        } catch (ReglaNegocioException e) {
+            flash.addFlashAttribute("error", e.getMessage());
             return "redirect:/matriz";
         }
-        if (proceso.trim().length() > 100 || nombre.trim().length() > 150) {
-            flash.addFlashAttribute("error", "El proceso admite hasta 100 caracteres y la actividad hasta 150.");
-            return "redirect:/matriz";
-        }
-        Proceso p = procesoRepository.findByNombre(proceso.trim())
-                .orElseGet(() -> procesoRepository.save(new Proceso(proceso.trim())));
-        Actividad actividad = actividadRepository.save(new Actividad(p, nombre.trim()));
-        flash.addFlashAttribute("exito", "Actividad creada. Agregue los EPP que exige.");
-        return "redirect:/matriz?actividad=" + actividad.getIdActividad();
     }
 }

@@ -34,7 +34,7 @@
                 <td><a class="cod fw-semibold" th:href="@{/inventario/unidad/{id}(id=${u.idUnidad})}" th:text="${u.codigo}"></a></td>
                 <td th:text="${u.epp.nombre}"></td>
                 <td><span class="badge" th:classappend="'text-bg-' + ${u.estado.color}" th:text="${u.estado.etiqueta}"></span>
-                    <span th:if="${u.pendienteDevolucion}" class="badge text-bg-warning">Por devolver</span></td>
+                    <span th:if="${u.pendienteDevolucion}" class="estado estado-alerta"><i class="bi bi-arrow-return-left" aria-hidden="true"></i>Por devolver</span></td>
                 <td class="small" th:text="${u.condicion.etiqueta}"></td>
                 <td><a th:if="${u.trabajador != null}" th:href="@{/historial(dni=${u.trabajador.dni})}" th:text="${u.trabajador.nombreCompleto}"></a>
                     <span th:if="${u.trabajador == null}" class="text-muted">—</span></td>

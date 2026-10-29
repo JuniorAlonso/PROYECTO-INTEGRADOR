@@ -18,8 +18,6 @@ import java.util.*;
 @Service
 public class InventarioService {
 
-    /** EPP con vida útil igual o menor se consideran descartables: no se reparan ni se reutilizan. */
-    public static final int DIAS_DESCARTABLE = 30;
     /** Horizonte de renovaciones que se suma a la necesidad de stock. */
     public static final int HORIZONTE_DIAS = 30;
 
@@ -43,19 +41,17 @@ public class InventarioService {
     private final EppRepository eppRepository;
     private final DotacionService dotacionService;
     private final VigenciaService vigenciaService;
+    private final AuditoriaService auditoriaService;
 
     public InventarioService(UnidadEppRepository unidadRepository, MovimientoUnidadRepository movimientoRepository,
                              EppRepository eppRepository, DotacionService dotacionService,
-                             VigenciaService vigenciaService) {
+                             VigenciaService vigenciaService, AuditoriaService auditoriaService) {
+        this.auditoriaService = auditoriaService;
         this.unidadRepository = unidadRepository;
         this.movimientoRepository = movimientoRepository;
         this.eppRepository = eppRepository;
         this.dotacionService = dotacionService;
         this.vigenciaService = vigenciaService;
-    }
-
-    public static boolean isDescartable(Epp epp) {
-        return epp.getVidaUtilDias() <= DIAS_DESCARTABLE;
     }
 
     private static BigDecimal costo(Epp epp, long unidades) {
@@ -71,7 +67,9 @@ public class InventarioService {
         if (cantidad == null || cantidad < 1 || cantidad > 500) {
             throw new ReglaNegocioException("La cantidad a ingresar debe estar entre 1 y 500.");
         }
-        Epp epp = eppRepository.findById(idEpp).orElseThrow(() -> new RecursoNoEncontradoException("EPP no encontrado."));
+        // Se bloquea el EPP: los códigos son correlativos y dos ingresos simultáneos no pueden repetirlos.
+        Epp epp = eppRepository.findByIdParaActualizar(idEpp)
+                .orElseThrow(() -> new RecursoNoEncontradoException("EPP no encontrado."));
         if (!epp.isActivo()) {
             throw new ReglaNegocioException("El EPP \"" + epp.getNombre() + "\" está desactivado en el catálogo.");
         }
@@ -84,20 +82,30 @@ public class InventarioService {
                     CondicionEpp.NUEVO, null, usuario));
             nuevas.add(unidad);
         }
+        auditoriaService.registrar(usuario, "INVENTARIO_INGRESO", "epp", idEpp,
+                cantidad + " unidades de " + epp.getNombre() + ": " + nuevas.getFirst().getCodigo()
+                        + (cantidad > 1 ? " a " + nuevas.getLast().getCodigo() : ""));
         return nuevas;
     }
 
-    /** Asigna unidades del almacén a un EPP entregado. Devuelve los códigos asignados (pueden faltar si no hay stock). */
+    /**
+     * Asigna unidades del almacén a un EPP entregado. Devuelve los códigos asignados (pueden faltar si no hay stock).
+     * Un desechable queda como CONSUMIDO: se gastó con el uso y no genera devolución pendiente. Se bloquea el EPP
+     * para que dos entregas simultáneas no tomen la misma unidad.
+     */
     @Transactional
     public List<String> asignar(DetalleEntrega detalle, Trabajador trabajador, String usuario) {
+        Epp epp = eppRepository.findByIdParaActualizar(detalle.getEpp().getIdEpp()).orElse(detalle.getEpp());
         List<UnidadEpp> disponibles = unidadRepository.findByEppIdEppAndEstadoOrderByIdUnidadAsc(
-                detalle.getEpp().getIdEpp(), EstadoUnidad.DISPONIBLE);
+                epp.getIdEpp(), EstadoUnidad.DISPONIBLE);
+        boolean consumible = epp.isDesechable();
         List<String> codigos = new ArrayList<>();
         for (UnidadEpp unidad : disponibles.subList(0, Math.min(detalle.getCantidad(), disponibles.size()))) {
-            unidad.setEstado(EstadoUnidad.ASIGNADO);
+            unidad.setEstado(consumible ? EstadoUnidad.CONSUMIDO : EstadoUnidad.ASIGNADO);
             unidad.setTrabajador(trabajador);
             unidad.setDetalle(detalle);
-            movimientoRepository.save(new MovimientoUnidad(unidad, TipoMovimientoUnidad.ASIGNACION, trabajador,
+            movimientoRepository.save(new MovimientoUnidad(unidad,
+                    consumible ? TipoMovimientoUnidad.CONSUMO : TipoMovimientoUnidad.ASIGNACION, trabajador,
                     unidad.getCondicion(), "Entrega del " + detalle.getEntrega().getFechaEntrega(), usuario));
             codigos.add(unidad.getCodigo());
         }
@@ -108,7 +116,7 @@ public class InventarioService {
     @Transactional
     public void liberar(DetalleEntrega detalle, String usuario) {
         for (UnidadEpp unidad : unidadRepository.findByDetalleIdDetalle(detalle.getIdDetalle())) {
-            if (unidad.getEstado() != EstadoUnidad.ASIGNADO) {
+            if (unidad.getEstado() != EstadoUnidad.ASIGNADO && unidad.getEstado() != EstadoUnidad.CONSUMIDO) {
                 continue;
             }
             Trabajador trabajador = unidad.getTrabajador();
@@ -125,18 +133,32 @@ public class InventarioService {
      * buen estado y vigente → vuelve al almacén para reutilizarse.
      */
     @Transactional
-    public UnidadEpp devolver(String codigo, CondicionEpp condicion, String observacion, String usuario) {
+    public UnidadEpp devolver(String codigo, CondicionEpp condicion, MotivoDevolucion motivo, String observacion,
+                              String usuario) {
         if (codigo == null || codigo.isBlank()) {
             throw new ReglaNegocioException("Ingrese el código del EPP devuelto.");
+        }
+        if (motivo == null) {
+            throw new ReglaNegocioException("Indique el motivo de la devolución.");
         }
         if (condicion == null || condicion == CondicionEpp.NUEVO) {
             throw new ReglaNegocioException("Indique la condición en que se devuelve el EPP.");
         }
-        if (observacion != null && observacion.trim().length() > 450) {
+        String nota = observacion == null ? "" : observacion.trim();
+        if (nota.length() > 450) {
             throw new ReglaNegocioException("La observación admite hasta 450 caracteres.");
+        }
+        if (motivo == MotivoDevolucion.OTRO && nota.isEmpty()) {
+            throw new ReglaNegocioException("Con el motivo «Otro» explique la razón en la observación.");
         }
         UnidadEpp unidad = unidadRepository.findByCodigoIgnoreCase(codigo.trim())
                 .orElseThrow(() -> new ReglaNegocioException("No existe un EPP con el código " + codigo.trim() + "."));
+        Epp epp = unidad.getEpp();
+        if (unidad.getEstado() == EstadoUnidad.CONSUMIDO || !epp.isPermiteDevolucion()) {
+            throw new ReglaNegocioException("El EPP " + unidad.getCodigo() + " (" + epp.getNombre() + ") es "
+                    + epp.getClaseEfectiva().getEtiqueta().toLowerCase() + ": no corresponde devolverlo. "
+                    + "Si se perdió o se dañó, registre una nueva entrega con ese motivo.");
+        }
         if (unidad.getEstado() != EstadoUnidad.ASIGNADO) {
             throw new ReglaNegocioException("El EPP " + unidad.getCodigo() + " no está asignado a ningún trabajador ("
                     + unidad.getEstado().getEtiqueta().toLowerCase() + ").");
@@ -149,30 +171,33 @@ public class InventarioService {
         if (condicion == CondicionEpp.INSERVIBLE) {
             destino = EstadoUnidad.DE_BAJA;
             decision = "Inservible: se da de baja";
-        } else if (isDescartable(unidad.getEpp())) {
-            destino = EstadoUnidad.DE_BAJA;
-            decision = "EPP descartable (vida útil de " + unidad.getEpp().getVidaUtilDias() + " días): no se reutiliza";
         } else if (condicion == CondicionEpp.REPARABLE && unidad.getVecesReparado() >= UnidadEpp.MAX_REPARACIONES) {
             destino = EstadoUnidad.DE_BAJA;
             decision = "Ya se reparó " + unidad.getVecesReparado() + " veces: no conviene otra reparación";
         } else if (condicion == CondicionEpp.REPARABLE) {
             destino = EstadoUnidad.POR_MANTENIMIENTO;
-            decision = "Reparable: apto para mantenimiento";
+            decision = "Reparable: pasa a inspección y mantenimiento";
+        } else if (epp.isRequiereInspeccionAlDevolver()) {
+            destino = EstadoUnidad.POR_MANTENIMIENTO;
+            decision = "Debe inspeccionarse antes de volver a asignarse (política del EPP, pendiente de validación SST)";
         } else if (vidaCumplida) {
             destino = EstadoUnidad.POR_MANTENIMIENTO;
-            decision = "Vida útil cumplida: requiere inspección en mantenimiento antes de reutilizarse";
+            decision = "Vida útil cumplida: requiere inspección antes de reutilizarse";
         } else {
             destino = EstadoUnidad.DISPONIBLE;
             decision = "Buen estado: vuelve al almacén para reutilizarse";
         }
         unidad.setCondicion(condicion);
         quitarAsignacion(unidad, destino);
-        String nota = observacion == null || observacion.isBlank() ? decision : decision + ". " + observacion.trim();
-        movimientoRepository.save(new MovimientoUnidad(unidad, TipoMovimientoUnidad.DEVOLUCION, trabajador,
-                condicion, nota, usuario));
+        MovimientoUnidad devolucion = new MovimientoUnidad(unidad, TipoMovimientoUnidad.DEVOLUCION, trabajador,
+                condicion, nota.isEmpty() ? decision : decision + ". " + nota, usuario);
+        devolucion.setMotivo(motivo);
+        movimientoRepository.save(devolucion);
         if (destino == EstadoUnidad.DE_BAJA) {
             movimientoRepository.save(new MovimientoUnidad(unidad, TipoMovimientoUnidad.BAJA, null, condicion, decision, usuario));
         }
+        auditoriaService.registrar(usuario, "INVENTARIO_DEVOLUCION", "unidad_epp", unidad.getIdUnidad(),
+                unidad.getCodigo() + "; motivo " + motivo.name() + "; condición " + condicion.name() + "; destino " + destino.name());
         return unidad;
     }
 
@@ -185,6 +210,8 @@ public class InventarioService {
         unidad.setEstado(EstadoUnidad.EN_MANTENIMIENTO);
         movimientoRepository.save(new MovimientoUnidad(unidad, TipoMovimientoUnidad.ENVIO_MANTENIMIENTO, null,
                 unidad.getCondicion(), null, usuario));
+        auditoriaService.registrar(usuario, "INVENTARIO_MANTENIMIENTO_ENVIO", "unidad_epp", unidad.getIdUnidad(),
+                unidad.getCodigo());
         return unidad;
     }
 
@@ -211,6 +238,8 @@ public class InventarioService {
             movimientoRepository.save(new MovimientoUnidad(unidad, TipoMovimientoUnidad.BAJA, null,
                     CondicionEpp.INSERVIBLE, nota == null ? "No se pudo reparar" : nota, usuario));
         }
+        auditoriaService.registrar(usuario, "INVENTARIO_MANTENIMIENTO_CIERRE", "unidad_epp", unidad.getIdUnidad(),
+                unidad.getCodigo() + "; resultado " + (reparado ? "reparado y disponible" : "dado de baja"));
         return unidad;
     }
 
@@ -268,17 +297,27 @@ public class InventarioService {
         return mapa;
     }
 
-    /** Ahorro logrado: unidades reutilizadas tras una devolución en buen estado o reparadas, valorizadas al costo de compra. */
+    /**
+     * Ahorro logrado: costo de compra evitado cada vez que una unidad ya usada (devuelta o reparada) se vuelve a
+     * asignar a un trabajador. Se cuenta por la secuencia de movimientos de cada unidad, no por el texto de las
+     * observaciones; una devolución que termina en baja no ahorra nada.
+     */
     @Transactional(readOnly = true)
     public BigDecimal ahorroLogrado() {
         BigDecimal total = BigDecimal.ZERO;
-        for (MovimientoUnidad m : movimientoRepository.findByTipo(TipoMovimientoUnidad.REPARADO)) {
-            total = total.add(costo(m.getUnidad().getEpp(), 1));
-        }
-        for (MovimientoUnidad m : movimientoRepository.findByTipo(TipoMovimientoUnidad.DEVOLUCION)) {
-            if (m.getCondicion() == CondicionEpp.BUENO && m.getObservacion() != null
-                    && m.getObservacion().startsWith("Buen estado")) {
-                total = total.add(costo(m.getUnidad().getEpp(), 1));
+        Set<Integer> usadasAntes = new HashSet<>();
+        for (MovimientoUnidad m : movimientoRepository.findAllByOrderByIdMovimientoAsc()) {
+            Integer unidad = m.getUnidad().getIdUnidad();
+            switch (m.getTipo()) {
+                case DEVOLUCION, REPARADO -> usadasAntes.add(unidad);
+                case BAJA -> usadasAntes.remove(unidad);
+                case ASIGNACION -> {
+                    if (usadasAntes.contains(unidad)) {
+                        total = total.add(costo(m.getUnidad().getEpp(), 1));
+                        usadasAntes.remove(unidad);
+                    }
+                }
+                default -> { }
             }
         }
         return total;

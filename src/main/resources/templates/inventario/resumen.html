@@ -80,8 +80,8 @@
                 <td class="text-end cod" th:text="${f.asignadas}"></td>
                 <td class="text-end cod" th:text="${f.recuperables}"></td>
                 <td class="text-end cod fw-bold" th:text="${f.compra}"></td>
-                <td><span th:if="${f.suficiente}" class="badge text-bg-success">Alcanza</span>
-                    <span th:unless="${f.suficiente}" class="badge text-bg-danger">Falta stock</span></td>
+                <td><span th:if="${f.suficiente}" class="estado estado-ok"><i class="bi bi-check-circle" aria-hidden="true"></i>Alcanza</span>
+                    <span th:unless="${f.suficiente}" class="estado estado-critico"><i class="bi bi-x-circle" aria-hidden="true"></i>Falta stock</span></td>
             </tr>
             </tbody>
         </table>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head><title>Excepciones · EPPTrack</title></head>
+<body>
+<section>
+    <h1 class="h4 mb-1">Panel de excepciones</h1>
+    <p class="subtitulo">Casos que requieren atención, calculados con los datos actuales. Cada caso (tipo, trabajador y EPP)
+        aparece una sola vez. Las justificaciones se revisan en los últimos <span th:text="${dias}"></span> días.</p>
+
+    <div class="d-flex flex-wrap gap-2 mb-3" id="contadores">
+        <a th:each="t : ${tipos}" class="badge text-bg-light border text-decoration-none"
+           th:href="@{/excepciones(tipo=${t.name()}, sede=${sedeSel}, dias=${dias})}">
+            <i class="bi" th:classappend="${t.icono}"></i> <span th:text="${t.etiqueta}"></span>:
+            <strong th:text="${conteo.get(t)}"></strong>
+        </a>
+    </div>
+
+    <form class="card card-body mb-3" method="get" th:action="@{/excepciones}">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4"><label class="form-label small" for="tipo">Tipo</label>
+                <select class="form-select" id="tipo" name="tipo">
+                    <option value="">Todos</option>
+                    <option th:each="t : ${tipos}" th:value="${t.name()}" th:text="${t.etiqueta}"
+                            th:selected="${t == tipoSel}"></option>
+                </select></div>
+            <div class="col-md-3"><label class="form-label small" for="sede">Sede</label>
+                <select class="form-select" id="sede" name="sede">
+                    <option value="">Todas</option>
+                    <option th:each="s : ${sedes}" th:value="${s.idSede}" th:text="${s.nombre}"
+                            th:selected="${s.idSede == sedeSel}"></option>
+                </select></div>
+            <div class="col-md-2"><label class="form-label small" for="dias">Días</label>
+                <input class="form-control" type="number" id="dias" name="dias" min="1" max="3650" th:value="${dias}"></div>
+            <div class="col-md-3"><button class="btn btn-primary">Filtrar</button>
+                <a class="btn btn-outline-secondary" th:href="@{/excepciones}">Limpiar</a></div>
+        </div>
+    </form>
+
+    <div class="card"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+        <thead class="table-light"><tr><th>Tipo</th><th>Trabajador</th><th>Sede</th><th>EPP</th><th>Detalle</th><th>Fecha</th><th></th></tr></thead>
+        <tbody>
+        <tr th:each="e : ${excepciones}">
+            <td><span class="badge" th:classappend="'text-bg-' + ${e.tipo.color}">
+                <i class="bi" th:classappend="${e.tipo.icono}"></i> <span th:text="${e.tipo.etiqueta}"></span></span></td>
+            <td><span th:text="${e.trabajador ?: '—'}"></span>
+                <div class="small text-muted" th:if="${e.dni != null}" th:text="'DNI ' + ${e.dni}"></div></td>
+            <td th:text="${e.sede ?: '—'}"></td>
+            <td th:text="${e.epp ?: '—'}"></td>
+            <td class="small" th:text="${e.detalle}"></td>
+            <td class="text-nowrap" th:text="${e.fecha != null} ? ${#temporals.format(e.fecha, 'dd/MM/yyyy')} : '—'"></td>
+            <td>
+                <a th:if="${!#strings.startsWith(e.enlace, '/epp/')}" class="btn btn-sm btn-outline-primary" th:href="@{${e.enlace}}">Resolver / Ver</a>
+                <!-- El catálogo solo lo edita el administrador: al supervisor no se le ofrece una acción que daría 403. -->
+                <a th:if="${#strings.startsWith(e.enlace, '/epp/')}" sec:authorize="hasRole('ADMIN')" class="btn btn-sm btn-outline-primary" th:href="@{${e.enlace}}">Resolver / Ver</a>
+                <span th:if="${#strings.startsWith(e.enlace, '/epp/')}" sec:authorize="!hasRole('ADMIN')" class="small text-muted">Lo valida el administrador con SST</span>
+            </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(excepciones)}"><td colspan="7" class="vacio">
+            <i class="bi bi-check-circle"></i>Sin excepciones en el periodo</td></tr>
+        </tbody>
+    </table></div></div>
+</section>
+</body>
+</html>

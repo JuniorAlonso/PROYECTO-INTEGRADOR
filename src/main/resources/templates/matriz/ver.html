@@ -23,13 +23,9 @@
                     Las entregas registran la versión vigente con la nota "con cambios no publicados".
                 </div>
             </div>
-            <form sec:authorize="hasRole('ADMIN')" class="d-flex flex-wrap gap-2 align-items-end" method="post" th:action="@{/matriz/publicar}">
-                <div><label class="form-label small mb-0">Código</label>
-                    <input class="form-control form-control-sm" name="codigo" maxlength="20" placeholder="v7" required style="width:6rem"></div>
-                <div><label class="form-label small mb-0">Descripción del cambio</label>
-                    <input class="form-control form-control-sm" name="descripcion" maxlength="300" placeholder="Aprobada por SST el …"></div>
-                <button class="btn btn-sm btn-primary"><i class="bi bi-upload"></i> Publicar versión</button>
-            </form>
+            <div th:if="${estadoMatriz.cambiosSinPublicar or estadoMatriz.vigente == null}">
+                <a class="btn btn-sm btn-primary" th:href="@{/matriz/previa}"><i class="bi bi-clipboard-data"></i> Ver impacto antes de publicar</a>
+            </div>
         </div>
         <div th:if="${impacto != null}" class="alert alert-info small mt-3 mb-0" id="impacto">
             <strong th:text="'Impacto de ' + ${impacto.version.codigo}"></strong>
@@ -47,7 +43,7 @@
             <summary>Historial de versiones (<span th:text="${#lists.size(versiones)}"></span>)</summary>
             <ul class="mb-0">
                 <li th:each="v : ${versiones}">
-                    <strong th:text="${v.codigo}"></strong> ·
+                    <a th:href="@{/matriz/versiones/{id}(id=${v.idVersion})}"><strong th:text="${v.codigo}"></strong></a> ·
                     <span th:text="${#temporals.format(v.fechaPublicacion, 'dd/MM/yyyy HH:mm')}"></span> ·
                     <span th:text="${v.totalReglas}"></span> reglas · <code th:text="${v.huellaCorta}"></code>
                     <span th:if="${v.descripcion != null}" th:text="' · ' + ${v.descripcion}"></span>

@@ -27,6 +27,15 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.CONFLICT, "El registro ya existe o está siendo modificado por otro usuario. Revise e intente de nuevo.");
     }
 
+    /** Un parámetro con formato inválido (fecha, número, opción): mensaje claro en lugar de la respuesta técnica de Spring. */
+    @ExceptionHandler({org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
+            org.springframework.web.bind.MissingServletRequestParameterException.class,
+            org.springframework.validation.BindException.class})
+    public ModelAndView parametroInvalido(Exception e) {
+        return error(HttpStatus.BAD_REQUEST, "Algún dato de la dirección o del filtro no es válido (por ejemplo una fecha "
+                + "o un número mal escrito). Vuelva a la pantalla anterior y corríjalo.");
+    }
+
     private ModelAndView error(HttpStatus estado, String mensaje) {
         ModelAndView mv = new ModelAndView("error", estado);
         mv.addObject("status", estado.value());

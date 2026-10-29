@@ -94,6 +94,17 @@ public class TrabajadorService {
             throw new ReglaNegocioException("El DNI " + datos.getDni() + " pertenece a otro trabajador.");
         }
         normalizar(datos);
+        // Bitácora mínima: se anota QUÉ campos cambiaron; solo se guardan valores de puesto, sede y actividad.
+        // DNI, nombres y fecha de nacimiento son datos personales: se registra que cambiaron, no su contenido.
+        java.util.List<String> cambios = new java.util.ArrayList<>();
+        if (!java.util.Objects.equals(trabajador.getDni(), datos.getDni())) cambios.add("DNI modificado");
+        if (!java.util.Objects.equals(trabajador.getApellidos(), datos.getApellidos())
+                || !java.util.Objects.equals(trabajador.getNombres(), datos.getNombres())) cambios.add("nombres modificados");
+        if (!java.util.Objects.equals(trabajador.getFechaNacimiento(), datos.getFechaNacimiento())) cambios.add("fecha de nacimiento modificada");
+        if (!java.util.Objects.equals(trabajador.getPuesto().getIdPuesto(), datos.getPuesto().getIdPuesto()))
+            cambios.add("puesto: " + trabajador.getPuesto().getNombre() + " → " + datos.getPuesto().getNombre());
+        if (!java.util.Objects.equals(trabajador.getSede().getIdSede(), datos.getSede().getIdSede()))
+            cambios.add("sede: " + trabajador.getSede().getNombre() + " → " + datos.getSede().getNombre());
         trabajador.setDni(datos.getDni());
         trabajador.setApellidos(datos.getApellidos());
         trabajador.setNombres(datos.getNombres());
@@ -104,6 +115,10 @@ public class TrabajadorService {
         Integer actual = actividadActual(id).map(Actividad::getIdActividad).orElse(null);
         if (idActividad != null && !idActividad.equals(actual) && trabajador.getEstado().isLaborando()) {
             asignarActividad(trabajador, idActividad, LocalDate.now());
+            cambios.add("actividad: " + (actual == null ? "ninguna" : actual) + " → " + idActividad);
+        }
+        if (!cambios.isEmpty()) {
+            auditoriaService.registrar(null, "TRABAJADOR_MODIFICADO", "trabajador", id, String.join("; ", cambios));
         }
         return trabajador;
     }

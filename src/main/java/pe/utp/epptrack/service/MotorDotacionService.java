@@ -101,7 +101,7 @@ public class MotorDotacionService {
             exigidos.add(epp.getIdEpp());
             int requerida = item.cantidadRequerida();
             DetalleEntrega uso = item.enUso();
-            int enPoder = uso == null ? 0 : uso.getCantidad();
+            int enPoder = item.enPoder();
             String regla = "RN-01 · matriz " + version + ": " + (item.obligatorio() ? "obligatorio" : "opcional")
                     + ", cantidad " + requerida;
 

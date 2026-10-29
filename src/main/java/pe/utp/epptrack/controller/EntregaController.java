@@ -31,7 +31,8 @@ import java.util.Set;
 public class EntregaController {
 
     /** Una fila del formulario: el EPP, si lo exige la matriz y la entrega que el trabajador ya tiene en uso. */
-    public record FilaEntrega(Epp epp, boolean enMatriz, boolean obligatorio, DetalleEntrega enUso) {}
+    public record FilaEntrega(Epp epp, boolean enMatriz, boolean obligatorio, DetalleEntrega enUso,
+                              int requerida, int enPoder, int pendiente) {}
 
     private final TrabajadorService trabajadorService;
     private final DotacionService dotacionService;
@@ -101,8 +102,10 @@ public class EntregaController {
         }
         List<Integer> duplicados = entregaService.duplicadosSinJustificar(form);
         List<Integer> noExigidos = entregaService.noExigidosSinJustificar(form);
+        List<Integer> excesos = entregaService.excesosSinJustificar(form);
         List<Integer> observados = new ArrayList<>(duplicados);
         noExigidos.stream().filter(id -> !observados.contains(id)).forEach(observados::add);
+        excesos.stream().filter(id -> !observados.contains(id)).forEach(observados::add);
         try {
             if (!observados.isEmpty()) {
                 List<String> razones = new ArrayList<>();
@@ -111,6 +114,9 @@ public class EntregaController {
                 }
                 if (!noExigidos.isEmpty()) {
                     razones.add("algunos EPP marcados no los exige la matriz para su actividad (RN-06)");
+                }
+                if (!excesos.isEmpty()) {
+                    razones.add("algunas cantidades superan lo que falta según la matriz (RN-08)");
                 }
                 model.addAttribute("error", "No se registró: " + String.join(" y ", razones)
                         + ". Escriba la justificación en las filas resaltadas o desmárquelas.");
@@ -161,7 +167,9 @@ public class EntregaController {
         for (ItemEntregaForm item : form.getItems()) {
             Epp epp = eppRepository.findById(item.getIdEpp()).orElseThrow();
             ItemDotacion regla = deMatriz.get(epp.getIdEpp());
-            filas.add(new FilaEntrega(epp, regla != null, regla != null && regla.obligatorio(), enUso.get(epp.getIdEpp())));
+            filas.add(new FilaEntrega(epp, regla != null, regla != null && regla.obligatorio(), enUso.get(epp.getIdEpp()),
+                    regla == null ? 0 : regla.cantidadRequerida(), regla == null ? 0 : regla.enPoder(),
+                    regla == null ? 0 : regla.getPendiente()));
         }
         model.addAttribute("form", form);
         model.addAttribute("trabajador", trabajador);

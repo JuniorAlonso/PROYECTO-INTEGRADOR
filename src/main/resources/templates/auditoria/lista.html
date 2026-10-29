@@ -8,28 +8,33 @@
     <p class="subtitulo">Cada operación queda encadenada con la huella SHA-256 de la anterior. Si alguien altera o borra
         un registro directamente en la base de datos, la verificación lo detecta.</p>
 
-    <div class="alert" th:classappend="${verificacion.integra} ? 'alert-success' : 'alert-danger'" id="verificacion">
-        <strong th:if="${verificacion.integra}">Cadena íntegra.</strong>
-        <strong th:unless="${verificacion.integra}">Cadena alterada.</strong>
-        <span th:text="${verificacion.registros} + ' registros verificados.'"></span>
-        <span th:if="${verificacion.integra and verificacion.ultimaHuella != null}">
-            Última huella: <code th:text="${verificacion.ultimaHuella}"></code></span>
-        <span th:unless="${verificacion.integra}">
-            El primer registro que no coincide es el N.° <strong th:text="${verificacion.primerRegistroAlterado}"></strong>.</span>
+    <div class="alert d-flex gap-2 align-items-start" th:classappend="${verificacion.integra} ? 'alert-success' : 'alert-danger'" id="verificacion" role="status">
+        <i class="bi fs-4" th:classappend="${verificacion.integra} ? 'bi-patch-check-fill' : 'bi-exclamation-octagon-fill'" aria-hidden="true"></i>
+        <div>
+            <strong th:if="${verificacion.integra}">Cadena íntegra.</strong>
+            <strong th:unless="${verificacion.integra}">Cadena alterada.</strong>
+            <span th:text="${verificacion.registros} + ' registros verificados.'"></span>
+            <span th:if="${verificacion.integra and verificacion.ultimaHuella != null}">
+                Última huella: <code class="text-break" th:text="${verificacion.ultimaHuella}"></code></span>
+            <span th:unless="${verificacion.integra}">
+                El primer registro que no coincide es el N.° <strong th:text="${verificacion.primerRegistroAlterado}"></strong>.</span>
+            <div class="small mt-1">Alcance: la huella encadenada detecta alteraciones o borrados parciales, pero no es inmutable
+                frente a quien controla la base de datos (podría recalcular toda la cadena). Complementa, no reemplaza, el respaldo y el control de accesos.</div>
+        </div>
     </div>
 
-    <div class="card"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+    <div class="card"><div class="table-responsive"><table class="table table-sm align-middle mb-0 tabla-fichas">
         <thead class="table-light"><tr><th>N.°</th><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Detalle</th><th>Huella</th></tr></thead>
         <tbody>
         <tr th:each="r : ${registros}">
-            <td th:text="${r.idRegistro}"></td>
-            <td class="text-nowrap" th:text="${#temporals.format(r.fecha, 'dd/MM/yyyy HH:mm:ss')}"></td>
-            <td th:text="${r.usuario}"></td>
-            <td><span class="badge text-bg-light border" th:text="${r.accion}"></span></td>
-            <td class="small" th:text="${r.detalle}"></td>
-            <td><code class="small" th:text="${r.huellaCorta}"></code></td>
+            <td data-etiqueta="N.°" th:text="${r.idRegistro}"></td>
+            <td data-etiqueta="Fecha" class="text-nowrap" th:text="${#temporals.format(r.fecha, 'dd/MM/yyyy HH:mm:ss')}"></td>
+            <td data-etiqueta="Usuario" th:text="${r.usuario}"></td>
+            <td data-etiqueta="Acción"><span class="estado estado-info"><i class="bi bi-journal-check" aria-hidden="true"></i><span th:text="${r.accion}"></span></span></td>
+            <td data-etiqueta="Detalle" class="small" th:text="${r.detalle}"></td>
+            <td data-etiqueta="Huella"><code class="small" th:text="${r.huellaCorta}"></code></td>
         </tr>
-        <tr th:if="${#lists.isEmpty(registros)}"><td colspan="6" class="text-muted">Aún no hay operaciones registradas.</td></tr>
+        <tr th:if="${#lists.isEmpty(registros)}"><td colspan="6" class="vacio"><i class="bi bi-journal"></i><p>Aún no hay operaciones registradas. Aparecerán aquí al registrar entregas, anulaciones o cambios.</p></td></tr>
         </tbody>
     </table></div></div>
     <p class="small text-muted mt-2">Se muestran los 200 registros más recientes. La verificación recorre la cadena completa.</p>

@@ -48,6 +48,20 @@ public class IdentidadService {
                 .toList();
     }
 
+    /**
+     * Grupos de fichas con los mismos apellidos y nombres normalizados (RF-27). Agrupa en un solo recorrido
+     * (sin comparar todos contra todos) y devuelve solo los grupos de más de una ficha.
+     */
+    @Transactional(readOnly = true)
+    public List<List<Trabajador>> gruposPosiblesDuplicados() {
+        return trabajadorRepository.findAll().stream()
+                .filter(t -> !normalizar(t.getApellidos()).isEmpty())
+                .collect(java.util.stream.Collectors.groupingBy(
+                        t -> normalizar(t.getApellidos()) + "|" + normalizar(t.getNombres()),
+                        java.util.LinkedHashMap::new, java.util.stream.Collectors.toList()))
+                .values().stream().filter(g -> g.size() > 1).toList();
+    }
+
     static String normalizar(String s) {
         if (s == null) return "";
         String sinTildes = Normalizer.normalize(s, Normalizer.Form.NFD).replaceAll("\\p{M}", "");

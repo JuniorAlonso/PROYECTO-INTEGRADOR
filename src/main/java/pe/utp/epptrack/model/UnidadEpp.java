@@ -56,7 +56,7 @@ public class UnidadEpp {
 
     /** Un trabajador debe devolverla: su entrega ya fue renovada o venció, o el trabajador cesó. */
     public boolean isPendienteDevolucion() {
-        return estado == EstadoUnidad.ASIGNADO && ((detalle != null && !detalle.getEstadoVigencia().isEnUso())
+        return estado == EstadoUnidad.ASIGNADO && epp.isPermiteDevolucion() && ((detalle != null && !detalle.getEstadoVigencia().isEnUso())
                 || (trabajador != null && !trabajador.getEstado().isLaborando()));
     }
 

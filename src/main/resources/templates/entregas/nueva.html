@@ -64,35 +64,47 @@
             <div class="card mb-3"><div class="table-responsive">
                 <table class="table align-middle mb-0">
                     <thead class="table-light">
-                    <tr><th style="width:2.5rem"><input class="form-check-input" type="checkbox" id="sel-todos" title="Seleccionar todos" aria-label="Seleccionar todos"></th><th>EPP</th><th>Categoría</th><th>Vida útil</th><th>Cant.</th><th>Situación actual</th></tr>
+                    <tr><th style="width:2.5rem"><input class="form-check-input" type="checkbox" id="sel-todos" title="Seleccionar todos" aria-label="Seleccionar todos"></th><th>EPP</th><th>Categoría</th><th class="text-end" title="Cantidad que exige la matriz">Exigido</th><th class="text-end" title="Unidades vigentes que ya tiene">En poder</th><th class="text-end" title="Lo que falta para cumplir la matriz">Falta</th><th>A entregar</th><th>Situación actual</th></tr>
                     </thead>
                     <tbody>
                     <tr th:each="f, i : ${filas}" th:classappend="${duplicados.contains(f.epp.idEpp)} ? 'table-warning'">
                         <td>
                             <input type="hidden" th:field="*{items[__${i.index}__].idEpp}">
-                            <input class="form-check-input" type="checkbox" th:field="*{items[__${i.index}__].seleccionado}">
+                            <input class="form-check-input" type="checkbox" th:field="*{items[__${i.index}__].seleccionado}" th:attr="aria-label='Entregar ' + ${f.epp.nombre}">
                         </td>
                         <td>
                             <span th:text="${f.epp.nombre}"></span>
+                            <span th:if="${duplicados.contains(f.epp.idEpp)}" class="estado estado-alerta"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i>Requiere justificación</span>
                             <span th:if="${f.obligatorio}" class="badge text-bg-primary">Obligatorio</span>
                             <span th:if="${!f.enMatriz}" class="badge text-bg-light border" title="La matriz no lo exige para la actividad: requiere justificación (RN-06)">No exigido</span>
                         </td>
                         <td th:text="${f.epp.categoria.nombre}"></td>
-                        <td><span th:text="${f.epp.vidaUtilDias}"></span> días</td>
+                        <td class="text-end"><span th:text="${f.enMatriz} ? ${f.requerida} : '—'"></span></td>
+                        <td class="text-end" th:text="${f.enPoder}"></td>
+                        <td class="text-end">
+                            <span th:if="${f.enMatriz and f.pendiente > 0}" class="estado estado-critico"><i class="bi bi-hourglass-split" aria-hidden="true"></i>Pendiente <span th:text="${f.pendiente}"></span></span>
+                            <span th:if="${f.enMatriz and f.pendiente == 0 and f.enPoder > f.requerida}" class="estado estado-info"><i class="bi bi-plus-circle" aria-hidden="true"></i>Exceso +<span th:text="${f.enPoder - f.requerida}"></span></span>
+                            <span th:if="${f.enMatriz and f.pendiente == 0 and f.enPoder <= f.requerida}" class="estado estado-ok"><i class="bi bi-check-circle" aria-hidden="true"></i>Completo</span>
+                            <span th:if="${!f.enMatriz}" class="text-muted">—</span>
+                        </td>
                         <td style="width:90px">
-                            <input class="form-control form-control-sm" type="number" min="1"
-                                   th:field="*{items[__${i.index}__].cantidad}">
+                            <input class="form-control form-control-sm" type="number" min="1" max="99"
+                                   th:field="*{items[__${i.index}__].cantidad}"
+                                   th:attr="aria-label='Cantidad a entregar de ' + ${f.epp.nombre}">
+                            <div class="form-text" th:if="${f.enMatriz and f.pendiente > 0}">máx. sin justificar: <span th:text="${f.pendiente}"></span></div>
                         </td>
                         <td>
-                            <span th:if="${f.enUso == null}" class="badge text-bg-danger">Sin EPP vigente</span>
+                            <span th:if="${f.enUso == null and f.enMatriz}" class="estado estado-critico"><i class="bi bi-x-circle" aria-hidden="true"></i>Sin EPP vigente</span>
+                            <span th:if="${f.enUso == null and !f.enMatriz}" class="estado estado-neutro"><i class="bi bi-dash-circle" aria-hidden="true"></i>No lo tiene</span>
                             <span th:if="${f.enUso != null}">
                                 <span class="badge" th:classappend="'text-bg-' + ${f.enUso.estadoVigencia.color}"
                                       th:text="${f.enUso.estadoVigencia.etiqueta}"></span>
                                 hasta <span th:text="${#temporals.format(f.enUso.fechaRenovacion, 'dd/MM/yyyy')}"></span>
                             </span>
-                            <div th:if="${f.enUso != null or !f.enMatriz}" class="mt-1">
+                            <div th:if="${f.enUso != null or !f.enMatriz or duplicados.contains(f.epp.idEpp)}" class="mt-1">
                                 <input class="form-control form-control-sm" th:field="*{items[__${i.index}__].justificacion}"
-                                       th:placeholder="${f.enUso != null} ? 'Justificación si se entrega de nuevo' : 'Justificación: la matriz no lo exige'"
+                                       th:placeholder="${!f.enMatriz} ? 'Justificación: la matriz no lo exige' : (${f.pendiente == 0} ? 'Justificación: ya lo tiene completo' : 'Justificación si entrega más de lo que falta')"
+                                       th:attr="aria-label='Justificación para ' + ${f.epp.nombre}"
                                        th:classappend="${duplicados.contains(f.epp.idEpp)} ? 'is-invalid'">
                             </div>
                         </td>
@@ -102,7 +114,9 @@
             </div></div>
 
             <p class="text-muted small">
-                La fecha de renovación se calcula como fecha de entrega + vida útil de cada EPP.
+                La fecha de renovación se calcula como fecha de entrega + vida útil de cada EPP. Si entregas menos de lo exigido,
+                el sistema lo registra como entrega parcial y lo que falta sigue pendiente; si entregas más de lo que falta
+                (o algo ya vigente o no exigido) debes justificarlo.
                 Los registros de entrega no pueden eliminarse; solo anularse con motivo.
             </p>
             <div class="barra-accion">

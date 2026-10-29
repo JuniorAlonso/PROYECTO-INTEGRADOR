@@ -25,18 +25,22 @@
     <div class="card"><div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
-            <tr><th>Categoría</th><th>EPP</th><th>Descripción</th><th class="text-end">Vida útil (días)</th><th>Estado</th><th></th></tr>
+            <tr><th>Categoría</th><th>EPP</th><th>Descripción</th><th>Clase</th><th class="text-end">Vida útil (días)</th><th>Estado</th><th></th></tr>
             </thead>
             <tbody>
             <tr th:each="e : ${epps}" th:classappend="${!e.activo} ? 'text-muted'">
                 <td th:text="${e.categoria.nombre}"></td>
                 <td th:text="${e.nombre}"></td>
                 <td th:text="${e.descripcion}"></td>
+                <td>
+                    <span th:text="${e.claseEfectiva.etiqueta}"></span>
+                    <span th:if="${e.clasePendienteValidacion}" class="estado estado-alerta"
+                          title="SST aún no confirmó la clase ni la política de devolución de este EPP"><i class="bi bi-hourglass-split"></i> Pendiente de validación</span>
+                </td>
                 <td class="text-end" th:text="${e.vidaUtilDias}"></td>
-                <td><span class="badge" th:classappend="${e.activo} ? 'text-bg-success' : 'text-bg-secondary'"
-                          th:text="${e.activo} ? 'Activo' : 'Inactivo'"></span></td>
+                <td><span class="estado" th:classappend="${e.activo} ? 'estado-ok' : 'estado-neutro'"><i class="bi" th:classappend="${e.activo} ? 'bi-check-circle' : 'bi-slash-circle'" aria-hidden="true"></i><span th:text="${e.activo} ? 'Activo' : 'Inactivo'"></span></span></td>
                 <td class="text-end text-nowrap" sec:authorize="hasRole('ADMIN')">
-                    <a class="btn btn-sm btn-outline-secondary" th:href="@{/epp/{id}/editar(id=${e.idEpp})}"><i class="bi bi-pencil"></i></a>
+                    <a class="btn btn-sm btn-outline-secondary" th:href="@{/epp/{id}/editar(id=${e.idEpp})}"><i class="bi bi-pencil"></i><span class="visually-hidden">Editar</span></a>
                     <form class="d-inline" method="post" th:action="@{/epp/{id}/estado(id=${e.idEpp})}">
                         <button class="btn btn-sm btn-outline-secondary" th:text="${e.activo} ? 'Desactivar' : 'Activar'"></button>
                     </form>

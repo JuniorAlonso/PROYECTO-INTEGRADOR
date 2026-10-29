@@ -7,7 +7,8 @@ public enum TipoMovimientoUnidad {
     ENVIO_MANTENIMIENTO("Enviado a mantenimiento"),
     REPARADO("Reparado, vuelve al almacén"),
     BAJA("Dado de baja"),
-    LIBERADO("Liberado por anulación de entrega");
+    LIBERADO("Liberado por anulación de entrega"),
+    CONSUMO("Consumido por el trabajador (desechable)");
 
     private final String etiqueta;
 

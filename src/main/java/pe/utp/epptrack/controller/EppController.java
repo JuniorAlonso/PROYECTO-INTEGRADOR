@@ -18,10 +18,13 @@ public class EppController {
 
     private final EppRepository eppRepository;
     private final CategoriaEppRepository categoriaRepository;
+    private final pe.utp.epptrack.service.EppService eppService;
 
-    public EppController(EppRepository eppRepository, CategoriaEppRepository categoriaRepository) {
+    public EppController(EppRepository eppRepository, CategoriaEppRepository categoriaRepository,
+                         pe.utp.epptrack.service.EppService eppService) {
         this.eppRepository = eppRepository;
         this.categoriaRepository = categoriaRepository;
+        this.eppService = eppService;
     }
 
     @GetMapping
@@ -37,6 +40,7 @@ public class EppController {
     @GetMapping("/nuevo")
     public String nuevo(Model model) {
         model.addAttribute("epp", new Epp());
+        model.addAttribute("clases", pe.utp.epptrack.model.ClaseEpp.values());
         model.addAttribute("categorias", categoriaRepository.findAllByOrderByNombreAsc());
         return "epp/formulario";
     }
@@ -45,6 +49,7 @@ public class EppController {
     public String editar(@PathVariable Integer id, Model model) {
         model.addAttribute("epp", eppRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("EPP no encontrado.")));
+        model.addAttribute("clases", pe.utp.epptrack.model.ClaseEpp.values());
         model.addAttribute("categorias", categoriaRepository.findAllByOrderByNombreAsc());
         return "epp/formulario";
     }
@@ -52,25 +57,22 @@ public class EppController {
     /** La vida útil modificada aplica a las entregas futuras; las ya registradas conservan su fecha de renovación. */
     @PostMapping
     public String guardar(@Valid @ModelAttribute("epp") Epp epp, BindingResult result,
-                          Model model, RedirectAttributes flash) {
+                          Model model, RedirectAttributes flash, org.springframework.security.core.Authentication auth) {
         if (result.hasErrors()) {
             model.addAttribute("categorias", categoriaRepository.findAllByOrderByNombreAsc());
+            model.addAttribute("clases", pe.utp.epptrack.model.ClaseEpp.values());
             return "epp/formulario";
         }
-        if (epp.getEstado() == null) {
-            epp.setEstado(Epp.ACTIVO);
-        }
-        eppRepository.save(epp);
+        eppService.guardar(epp, auth.getName());
         flash.addFlashAttribute("exito", "EPP guardado: " + epp.getNombre());
         return "redirect:/epp";
     }
 
     /** Los EPP no se eliminan (tienen entregas asociadas): se desactivan para que no se ofrezcan en nuevas entregas. */
     @PostMapping("/{id}/estado")
-    public String cambiarEstado(@PathVariable Integer id, RedirectAttributes flash) {
-        Epp epp = eppRepository.findById(id).orElseThrow(() -> new RecursoNoEncontradoException("EPP no encontrado."));
-        epp.setEstado(epp.isActivo() ? Epp.INACTIVO : Epp.ACTIVO);
-        eppRepository.save(epp);
+    public String cambiarEstado(@PathVariable Integer id, RedirectAttributes flash,
+                                org.springframework.security.core.Authentication auth) {
+        Epp epp = eppService.cambiarEstado(id, auth.getName());
         flash.addFlashAttribute("exito", epp.getNombre() + (epp.isActivo() ? " activado." : " desactivado."));
         return "redirect:/epp";
     }

@@ -38,6 +38,43 @@
                 <input class="form-control" th:field="*{descripcion}">
             </div>
         </div>
+        <fieldset class="mt-4 border-top pt-3">
+            <legend class="h6">Clasificación y política de devolución</legend>
+            <p class="form-text mt-0">Define qué ocurre con el equipo después de entregarlo. Si SST aún no confirmó la clase, déjelo
+                «pendiente»: el sistema aplica la política más conservadora (uso individual con inspección) y no inventa una regla.</p>
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label" for="clase">Clase del EPP</label>
+                    <select class="form-select" id="clase" th:field="*{clase}">
+                        <option value="">Pendiente de clasificar (se trata como uso individual)</option>
+                        <option th:each="c : ${clases}" th:value="${c}" th:text="${c.etiqueta}" th:title="${c.descripcion}"></option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="devolucionPermitida">¿Se puede devolver?</label>
+                    <select class="form-select" id="devolucionPermitida" name="devolucionPermitida">
+                        <option value="" th:selected="${epp.devolucionPermitida == null}">Según la clase</option>
+                        <option value="true" th:selected="${epp.devolucionPermitida != null and epp.devolucionPermitida}">Sí</option>
+                        <option value="false" th:selected="${epp.devolucionPermitida != null and !epp.devolucionPermitida}">No</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="inspeccionAlDevolver">¿Inspección al devolverlo?</label>
+                    <select class="form-select" id="inspeccionAlDevolver" name="inspeccionAlDevolver">
+                        <option value="" th:selected="${epp.inspeccionAlDevolver == null}">Según la clase</option>
+                        <option value="true" th:selected="${epp.inspeccionAlDevolver != null and epp.inspeccionAlDevolver}">Sí, antes de reasignarlo</option>
+                        <option value="false" th:selected="${epp.inspeccionAlDevolver != null and !epp.inspeccionAlDevolver}">No</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="claseValidada" th:field="*{claseValidada}">
+                        <label class="form-check-label" for="claseValidada">Clase y política confirmadas por SST</label>
+                    </div>
+                    <div class="form-text">Márquelo solo cuando SST haya validado esta clasificación. Mientras tanto el catálogo la muestra como «pendiente de validación».</div>
+                </div>
+            </div>
+        </fieldset>
         <div class="form-text mt-2">Un cambio de vida útil aplica a las entregas nuevas; las ya registradas conservan su fecha de renovación.</div>
         <div class="mt-4 d-flex gap-2">
             <button class="btn btn-primary">Guardar</button>

@@ -13,4 +13,7 @@ public interface MovimientoUnidadRepository extends JpaRepository<MovimientoUnid
     List<MovimientoUnidad> findTop50ByTipoOrderByFechaDescIdMovimientoDesc(TipoMovimientoUnidad tipo);
 
     List<MovimientoUnidad> findByTipo(TipoMovimientoUnidad tipo);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"unidad.epp"})
+    List<MovimientoUnidad> findAllByOrderByIdMovimientoAsc();
 }

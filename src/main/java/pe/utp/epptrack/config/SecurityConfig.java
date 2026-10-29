@@ -43,7 +43,7 @@ public class SecurityConfig {
                 .requestMatchers("/epp/nuevo", "/epp/*/editar").hasRole(ADMIN)
                 .requestMatchers(HttpMethod.POST, "/trabajadores/**").hasAnyRole(ADMIN, RRHH)
                 .requestMatchers("/trabajadores/nuevo", "/trabajadores/*/editar").hasAnyRole(ADMIN, RRHH)
-                .requestMatchers("/entregas/**", "/alertas/**", "/radar/**", "/reportes/**", "/inventario/**", "/auditoria/**").hasAnyRole(ADMIN, SUPERVISOR)
+                .requestMatchers("/entregas/**", "/alertas/**", "/radar/**", "/reportes/**", "/inventario/**", "/auditoria/**", "/excepciones/**", "/indicadores/**").hasAnyRole(ADMIN, SUPERVISOR)
                 .anyRequest().authenticated())
             .headers(h -> h
                 .contentSecurityPolicy(csp -> csp.policyDirectives(CSP))

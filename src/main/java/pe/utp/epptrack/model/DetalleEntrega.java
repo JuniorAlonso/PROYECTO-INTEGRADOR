@@ -39,6 +39,16 @@ public class DetalleEntrega {
     @Column(length = 500)
     private String justificacionNoExigido;
 
+    /** Justificación obligatoria cuando se entrega más de lo que falta según la matriz (RN-08). */
+    @Column(length = 500)
+    private String justificacionExceso;
+
+    /**
+     * Cantidad que la matriz exigía de este EPP al momento de entregar (0 = no lo exigía). {@code null} en
+     * entregas anteriores a este registro. Congela la regla: editar la matriz después no reescribe la historia.
+     */
+    private Integer cantidadExigida;
+
     public DetalleEntrega() {}
 
     public DetalleEntrega(Epp epp, int cantidad, LocalDate fechaRenovacion) {
@@ -53,6 +63,13 @@ public class DetalleEntrega {
     }
 
     public boolean isDuplicadoJustificado() { return justificacionDuplicado != null && !justificacionDuplicado.isBlank(); }
+
+    public boolean isExcesoJustificado() { return justificacionExceso != null && !justificacionExceso.isBlank(); }
+    public boolean isNoExigidoJustificado() { return justificacionNoExigido != null && !justificacionNoExigido.isBlank(); }
+    public String getJustificacionExceso() { return justificacionExceso; }
+    public void setJustificacionExceso(String justificacionExceso) { this.justificacionExceso = justificacionExceso; }
+    public Integer getCantidadExigida() { return cantidadExigida; }
+    public void setCantidadExigida(Integer cantidadExigida) { this.cantidadExigida = cantidadExigida; }
 
     public Integer getIdDetalle() { return idDetalle; }
     public void setIdDetalle(Integer idDetalle) { this.idDetalle = idDetalle; }
